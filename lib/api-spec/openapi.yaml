@@ -1,22 +1,32 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: SciVet API — citizen science papers, AI rigor checks, community reviews
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: papers
+    description: Scientific paper submissions
+  - name: reviews
+    description: Community reviews and votes
+  - name: comments
+    description: Threaded critiques on papers
+  - name: feed
+    description: Discovery feeds and aggregates
+  - name: fields
+    description: Scientific field taxonomy
+  - name: users
+    description: User profiles
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +34,401 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Current authenticated user (or null if signed out)
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+
+  /fields:
+    get:
+      operationId: listFields
+      tags: [fields]
+      summary: List scientific field tags with paper counts
+      responses:
+        "200":
+          description: Fields
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FieldTag"
+
+  /papers:
+    get:
+      operationId: listPapers
+      tags: [papers]
+      summary: List papers (filterable)
+      parameters:
+        - name: stage
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [draft, under_review, promoted, published, all]
+        - name: field
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [trending, recent, top]
+        - name: authorId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Papers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperSummary"
+    post:
+      operationId: createPaper
+      tags: [papers]
+      summary: Submit a new paper (auth required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaperCreateInput"
+      responses:
+        "201":
+          description: Created paper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paper"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /papers/{id}:
+    get:
+      operationId: getPaper
+      tags: [papers]
+      summary: Get a paper with full content, AI report, vote breakdown, and counts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paper detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaperDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    patch:
+      operationId: updatePaper
+      tags: [papers]
+      summary: Revise a paper (author only). Triggers a fresh AI rigor pass.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaperUpdateInput"
+      responses:
+        "200":
+          description: Updated paper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paper"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /papers/{id}/revisions:
+    get:
+      operationId: listPaperRevisions
+      tags: [papers]
+      summary: Revision history for a paper
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Revisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperRevision"
+
+  /papers/{id}/rerun-ai:
+    post:
+      operationId: rerunPaperAi
+      tags: [papers]
+      summary: Manually trigger a fresh AI rigor + survey pass (author only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated paper with fresh AI reports
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaperDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /papers/{id}/comments:
+    get:
+      operationId: listPaperComments
+      tags: [comments]
+      summary: List threaded critiques on a paper
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: createPaperComment
+      tags: [comments]
+      summary: Post a critique or reply (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateInput"
+      responses:
+        "201":
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /papers/{id}/reviews:
+    get:
+      operationId: listPaperReviews
+      tags: [reviews]
+      summary: List structured reviews/votes on a paper
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+    post:
+      operationId: castPaperReview
+      tags: [reviews]
+      summary: Cast or update an endorse/challenge/reject vote with required justification (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewCastInput"
+      responses:
+        "201":
+          description: Created or updated review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /feed/trending:
+    get:
+      operationId: getTrendingFeed
+      tags: [feed]
+      summary: Trending papers across the platform
+      responses:
+        "200":
+          description: Trending
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperSummary"
+
+  /feed/promoted:
+    get:
+      operationId: getPromotedFeed
+      tags: [feed]
+      summary: Recently promoted papers
+      responses:
+        "200":
+          description: Promoted
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperSummary"
+
+  /feed/published:
+    get:
+      operationId: getPublishedFeed
+      tags: [feed]
+      summary: Recently published papers
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperSummary"
+
+  /feed/stats:
+    get:
+      operationId: getFeedStats
+      tags: [feed]
+      summary: Platform-wide stats for the homepage
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedStats"
+
+  /users/{id}:
+    get:
+      operationId: getUserProfile
+      tags: [users]
+      summary: Public profile with submitted papers and review history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +439,520 @@ components:
       required:
         - status
 
+    ApiErrorBody:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MeResponse:
+      type: object
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/PublicUser"
+            - type: "null"
+      required:
+        - user
+
+    PublicUser:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - displayName
+        - avatarUrl
+        - bio
+        - createdAt
+
+    UserProfile:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/PublicUser"
+        papers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaperSummary"
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+        stats:
+          $ref: "#/components/schemas/UserStats"
+      required:
+        - user
+        - papers
+        - reviews
+        - stats
+
+    UserStats:
+      type: object
+      properties:
+        papersSubmitted:
+          type: integer
+        papersPublished:
+          type: integer
+        reviewsCast:
+          type: integer
+        commentsPosted:
+          type: integer
+      required:
+        - papersSubmitted
+        - papersPublished
+        - reviewsCast
+        - commentsPosted
+
+    FieldTag:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        paperCount:
+          type: integer
+      required:
+        - slug
+        - name
+        - paperCount
+
+    PaperStage:
+      type: string
+      enum: [draft, under_review, promoted, published]
+
+    ReviewStance:
+      type: string
+      enum: [endorse, challenge, reject]
+
+    PaperSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        abstract:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+        stage:
+          $ref: "#/components/schemas/PaperStage"
+        author:
+          $ref: "#/components/schemas/PublicUser"
+        rigorScore:
+          type: ["number", "null"]
+        aiConfidence:
+          type: ["number", "null"]
+        endorseCount:
+          type: integer
+        challengeCount:
+          type: integer
+        rejectCount:
+          type: integer
+        commentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - abstract
+        - fields
+        - stage
+        - author
+        - rigorScore
+        - aiConfidence
+        - endorseCount
+        - challengeCount
+        - rejectCount
+        - commentCount
+        - createdAt
+        - updatedAt
+
+    Paper:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        abstract:
+          type: string
+        body:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaperReference"
+        stage:
+          $ref: "#/components/schemas/PaperStage"
+        authorId:
+          type: string
+        revisionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - abstract
+        - body
+        - fields
+        - references
+        - stage
+        - authorId
+        - revisionCount
+        - createdAt
+        - updatedAt
+
+    PaperReference:
+      type: object
+      properties:
+        citation:
+          type: string
+        url:
+          type: ["string", "null"]
+      required:
+        - citation
+        - url
+
+    PaperDetail:
+      type: object
+      properties:
+        paper:
+          $ref: "#/components/schemas/Paper"
+        author:
+          $ref: "#/components/schemas/PublicUser"
+        rigorReport:
+          oneOf:
+            - $ref: "#/components/schemas/RigorReport"
+            - type: "null"
+        aiSurvey:
+          oneOf:
+            - $ref: "#/components/schemas/AiSurvey"
+            - type: "null"
+        voteBreakdown:
+          $ref: "#/components/schemas/VoteBreakdown"
+        commentCount:
+          type: integer
+        promotionThresholds:
+          $ref: "#/components/schemas/PromotionThresholds"
+      required:
+        - paper
+        - author
+        - rigorReport
+        - aiSurvey
+        - voteBreakdown
+        - commentCount
+        - promotionThresholds
+
+    RigorReport:
+      type: object
+      properties:
+        overallScore:
+          type: number
+        logicScore:
+          type: number
+        methodologyScore:
+          type: number
+        citationsScore:
+          type: number
+        falsifiabilityScore:
+          type: number
+        noveltyScore:
+          type: number
+        critique:
+          type: string
+        strengths:
+          type: array
+          items:
+            type: string
+        weaknesses:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - overallScore
+        - logicScore
+        - methodologyScore
+        - citationsScore
+        - falsifiabilityScore
+        - noveltyScore
+        - critique
+        - strengths
+        - weaknesses
+        - createdAt
+
+    AiSurvey:
+      type: object
+      properties:
+        confidence:
+          type: number
+        passes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiSurveyPass"
+        consensus:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - confidence
+        - passes
+        - consensus
+        - createdAt
+
+    AiSurveyPass:
+      type: object
+      properties:
+        persona:
+          type: string
+        verdict:
+          type: string
+          enum: [endorse, mixed, reject]
+        confidence:
+          type: number
+        rationale:
+          type: string
+      required:
+        - persona
+        - verdict
+        - confidence
+        - rationale
+
+    VoteBreakdown:
+      type: object
+      properties:
+        endorse:
+          type: integer
+        challenge:
+          type: integer
+        reject:
+          type: integer
+        communityScore:
+          type: number
+        combinedScore:
+          type: number
+      required:
+        - endorse
+        - challenge
+        - reject
+        - communityScore
+        - combinedScore
+
+    PromotionThresholds:
+      type: object
+      properties:
+        underReview:
+          type: number
+        promoted:
+          type: number
+        published:
+          type: number
+      required:
+        - underReview
+        - promoted
+        - published
+
+    PaperRevision:
+      type: object
+      properties:
+        id:
+          type: integer
+        paperId:
+          type: integer
+        revisionNumber:
+          type: integer
+        title:
+          type: string
+        abstract:
+          type: string
+        summary:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - paperId
+        - revisionNumber
+        - title
+        - abstract
+        - summary
+        - createdAt
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        paperId:
+          type: integer
+        parentId:
+          type: ["integer", "null"]
+        author:
+          $ref: "#/components/schemas/PublicUser"
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - paperId
+        - parentId
+        - author
+        - body
+        - createdAt
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        paperId:
+          type: integer
+        author:
+          $ref: "#/components/schemas/PublicUser"
+        stance:
+          $ref: "#/components/schemas/ReviewStance"
+        justification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - paperId
+        - author
+        - stance
+        - justification
+        - createdAt
+
+    PaperCreateInput:
+      type: object
+      properties:
+        title:
+          type: string
+        abstract:
+          type: string
+        body:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaperReference"
+      required:
+        - title
+        - abstract
+        - body
+        - fields
+        - references
+
+    PaperUpdateInput:
+      type: object
+      properties:
+        title:
+          type: string
+        abstract:
+          type: string
+        body:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaperReference"
+        revisionSummary:
+          type: string
+      required:
+        - title
+        - abstract
+        - body
+        - fields
+        - references
+        - revisionSummary
+
+    CommentCreateInput:
+      type: object
+      properties:
+        body:
+          type: string
+        parentId:
+          type: ["integer", "null"]
+      required:
+        - body
+        - parentId
+
+    ReviewCastInput:
+      type: object
+      properties:
+        stance:
+          $ref: "#/components/schemas/ReviewStance"
+        justification:
+          type: string
+      required:
+        - stance
+        - justification
+
+    FeedStats:
+      type: object
+      properties:
+        totalPapers:
+          type: integer
+        underReview:
+          type: integer
+        promoted:
+          type: integer
+        published:
+          type: integer
+        contributors:
+          type: integer
+        totalReviews:
+          type: integer
+      required:
+        - totalPapers
+        - underReview
+        - promoted
+        - published
+        - contributors
+        - totalReviews
