@@ -1,11 +1,13 @@
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { SignedOut, useUser } from "@clerk/react";
+import { useUser } from "@clerk/react";
+import { SignedOut } from "@/lib/clerk-compat";
 import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
 import { ArrowRight, BrainCircuit, Globe, Users, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { useGetTrendingFeed } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 

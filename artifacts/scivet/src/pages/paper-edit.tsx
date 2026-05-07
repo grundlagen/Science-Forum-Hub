@@ -91,7 +91,7 @@ export default function PaperEdit() {
         setLocation(`/papers/${paperId}`);
       },
       onError: (err) => {
-        toast.error("Failed to update: " + (err?.error || "Unknown error"));
+        toast.error("Failed to update: " + (err?.data?.error || "Unknown error"));
       }
     });
   };
@@ -103,7 +103,7 @@ export default function PaperEdit() {
         queryClient.invalidateQueries({ queryKey: getGetPaperQueryKey(paperId) });
       },
       onError: (err) => {
-        toast.error("Failed to trigger AI: " + (err?.error || "Unknown error"));
+        toast.error("Failed to trigger AI: " + (err?.data?.error || "Unknown error"));
       }
     });
   };

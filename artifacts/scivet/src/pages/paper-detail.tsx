@@ -16,7 +16,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
 import { BrainCircuit, CheckCircle2, AlertCircle, XCircle, ChevronRight, PenTool } from "lucide-react";
-import { SignedIn, SignedOut, useUser } from "@clerk/react";
+import { useUser } from "@clerk/react";
+import { SignedIn, SignedOut } from "@/lib/clerk-compat";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -309,7 +310,7 @@ export default function PaperDetail() {
                         <span className="font-medium text-sm">{pass.persona}</span>
                         <Badge variant="outline" className={
                           pass.verdict === 'endorse' ? 'text-green-600 border-green-200 bg-green-50' :
-                          pass.verdict === 'challenge' || pass.verdict === 'mixed' ? 'text-orange-500 border-orange-200 bg-orange-50' :
+                          pass.verdict === 'mixed' ? 'text-orange-500 border-orange-200 bg-orange-50' :
                           'text-red-600 border-red-200 bg-red-50'
                         }>
                           {pass.verdict}

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { SignedIn, SignedOut, useUser, useClerk } from "@clerk/react";
+import { useUser, useClerk } from "@clerk/react";
+import { SignedIn, SignedOut } from "@/lib/clerk-compat";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

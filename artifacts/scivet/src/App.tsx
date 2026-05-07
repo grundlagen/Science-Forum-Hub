@@ -1,10 +1,10 @@
-import { Switch, Route, Router as WouterRouter, navigate } from "wouter";
+import { Switch, Route, Router as WouterRouter } from "wouter";
+import { navigate } from "wouter/use-browser-location";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider, SignIn, SignUp } from "@clerk/react";
 import { dark } from "@clerk/themes";
-// @ts-expect-error - no types for clerk shared keys
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 
 import NotFound from "@/pages/not-found";

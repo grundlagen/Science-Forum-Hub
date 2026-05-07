@@ -4,7 +4,8 @@ import { PaperCard } from "@/components/paper-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flame, Star, Award, Clock } from "lucide-react";
-import { SignedIn, useUser } from "@clerk/react";
+import { useUser } from "@clerk/react";
+import { SignedIn } from "@/lib/clerk-compat";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 

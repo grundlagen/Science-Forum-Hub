@@ -6,7 +6,7 @@ import { useCreatePaper, PaperCreateInput } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
-import { SignedIn, SignedOut } from "@clerk/react";
+import { SignedIn, SignedOut } from "@/lib/clerk-compat";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function Submit() {
@@ -61,7 +61,7 @@ export default function Submit() {
         setLocation(`/papers/${res.id}`);
       },
       onError: (err) => {
-        toast.error("Failed to submit paper: " + (err?.error || "Unknown error"));
+        toast.error("Failed to submit paper: " + (err?.data?.error || "Unknown error"));
       }
     });
   };
