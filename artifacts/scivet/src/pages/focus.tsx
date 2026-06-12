@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import {
@@ -11,9 +11,13 @@ import {
   useCreateFocusCapture,
   useResolveFocusCapture,
   useGetFocusSettings,
+  useUpdateFocusSettings,
+  useGetPaper,
   getGetActiveFocusSessionQueryKey,
   getGetFocusStatsQueryKey,
+  getGetFocusSettingsQueryKey,
   getListFocusSessionsQueryKey,
+  type FocusSettings,
   type FocusSession,
   type FocusSessionEndResult,
   type FocusCapture,
@@ -41,8 +45,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Anchor, Brain, Check, Feather, NotebookPen, Search, Timer, Wind } from "lucide-react";
+import { Anchor, BookOpen, Brain, Check, Feather, NotebookPen, Search, Settings2, Timer, Wind, X } from "lucide-react";
 
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -72,6 +77,7 @@ const OUTCOME_LABELS: Record<string, { label: string; variant: "default" | "seco
 
 function StartView({ onStarted }: { onStarted: () => void }) {
   const { toast } = useToast();
+  const search = useSearch();
   const { data: settings } = useGetFocusSettings();
   const { data: stats } = useGetFocusStats();
   const { data: history } = useListFocusSessions({ limit: 8 });
@@ -80,9 +86,20 @@ function StartView({ onStarted }: { onStarted: () => void }) {
   const [intention, setIntention] = useState("");
   const [minutes, setMinutes] = useState<number | null>(null);
   const [lockMode, setLockMode] = useState<FocusLockMode | null>(null);
+  const [paperUnlinked, setPaperUnlinked] = useState(false);
 
-  const effectiveMinutes = minutes ?? settings?.defaultMinutes ?? 25;
+  const paperParam = new URLSearchParams(search).get("paper");
+  const requestedPaperId = paperParam && /^\d+$/.test(paperParam) ? Number(paperParam) : null;
+  const { data: linkedPaper } = useGetPaper(requestedPaperId ?? 0, {
+    query: { enabled: requestedPaperId != null },
+  });
+  const paperId = paperUnlinked ? null : requestedPaperId;
+
+  const suggested = stats?.suggestedMinutes;
+  const effectiveMinutes = minutes ?? suggested ?? settings?.defaultMinutes ?? 25;
   const effectiveLock = lockMode ?? settings?.defaultLockMode ?? "gentle";
+  const suggestionDiffers =
+    suggested != null && settings != null && suggested !== settings.defaultMinutes;
 
   const weeklyProgress = stats
     ? Math.min(100, Math.round((stats.minutesThisWeek / Math.max(1, stats.weeklyTargetMinutes)) * 100))
@@ -95,6 +112,7 @@ function StartView({ onStarted }: { onStarted: () => void }) {
           intention: intention.trim(),
           plannedMinutes: effectiveMinutes,
           lockMode: effectiveLock,
+          paperId,
         },
       },
       {
@@ -113,15 +131,41 @@ function StartView({ onStarted }: { onStarted: () => void }) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-serif">
-            <Brain className="h-5 w-5" /> Begin a focus session
-          </CardTitle>
-          <CardDescription>
-            One concrete sentence about what you will do. A specific plan is the single most
-            reliable lever for following through.
-          </CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1.5">
+              <CardTitle className="flex items-center gap-2 font-serif">
+                <Brain className="h-5 w-5" /> Begin a focus session
+              </CardTitle>
+              <CardDescription>
+                One concrete sentence about what you will do. A specific plan is the single most
+                reliable lever for following through.
+              </CardDescription>
+            </div>
+            {settings && <SettingsDialog settings={settings} />}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {paperId != null && linkedPaper && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+              <Link
+                href={`/papers/${paperId}`}
+                className="flex items-center gap-2 text-sm min-w-0 hover:underline"
+              >
+                <BookOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="truncate">{linkedPaper.paper.title}</span>
+              </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 h-7 px-2"
+                onClick={() => setPaperUnlinked(true)}
+                title="Unlink this paper"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="intention">Your intention</Label>
             <Textarea
@@ -151,6 +195,11 @@ function StartView({ onStarted }: { onStarted: () => void }) {
               10–90 minutes. Attention runs in ~90-minute cycles; past that you're borrowing from
               the next session.
             </p>
+            {suggestionDiffers && minutes == null && (
+              <p className="text-xs text-primary">
+                Suggested {suggested} min based on how your recent sessions felt — slide to override.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -263,6 +312,136 @@ function StartView({ onStarted }: { onStarted: () => void }) {
         </Card>
       </div>
     </div>
+  );
+}
+
+function SettingsDialog({ settings }: { settings: FocusSettings }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const updateSettings = useUpdateFocusSettings();
+  const [open, setOpen] = useState(false);
+  const [defaultMinutes, setDefaultMinutes] = useState(settings.defaultMinutes);
+  const [weeklyTarget, setWeeklyTarget] = useState(settings.weeklyTargetMinutes);
+  const [defaultLockMode, setDefaultLockMode] = useState<FocusLockMode>(settings.defaultLockMode);
+  const [quietFeed, setQuietFeed] = useState(settings.quietFeed);
+
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      setDefaultMinutes(settings.defaultMinutes);
+      setWeeklyTarget(settings.weeklyTargetMinutes);
+      setDefaultLockMode(settings.defaultLockMode);
+      setQuietFeed(settings.quietFeed);
+    }
+    setOpen(next);
+  };
+
+  const handleSave = () => {
+    updateSettings.mutate(
+      {
+        data: {
+          defaultMinutes,
+          weeklyTargetMinutes: Math.min(2400, Math.max(10, weeklyTarget)),
+          defaultLockMode,
+          quietFeed,
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetFocusSettingsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetFocusStatsQueryKey() });
+          setOpen(false);
+        },
+        onError: () => toast({ title: "Couldn't save settings", variant: "destructive" }),
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Button variant="ghost" size="sm" onClick={() => handleOpenChange(true)} title="Focus Guard settings">
+        <Settings2 className="h-4 w-4" />
+      </Button>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-serif">Focus Guard settings</DialogTitle>
+          <DialogDescription>
+            Your goals, your numbers. Nothing here ever auto-escalates.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Default session length</Label>
+              <span className="text-sm font-medium tabular-nums">{defaultMinutes} min</span>
+            </div>
+            <Slider
+              min={10}
+              max={90}
+              step={5}
+              value={[defaultMinutes]}
+              onValueChange={([v]) => setDefaultMinutes(v)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="weekly-target">Weekly target (minutes)</Label>
+            <Input
+              id="weekly-target"
+              type="number"
+              min={10}
+              max={2400}
+              value={weeklyTarget}
+              onChange={(e) => setWeeklyTarget(Number(e.target.value) || 0)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Measured Monday to Monday. A modest target you hit beats an ambitious one you dread.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Default leaving mode</Label>
+            <div className="flex gap-2">
+              {(
+                [
+                  ["gentle", Feather, "Gentle"],
+                  ["ulysses", Anchor, "Ulysses"],
+                ] as const
+              ).map(([mode, Icon, label]) => (
+                <Button
+                  key={mode}
+                  size="sm"
+                  variant={defaultLockMode === mode ? "default" : "outline"}
+                  onClick={() => setDefaultLockMode(mode)}
+                >
+                  <Icon className="h-3.5 w-3.5 mr-1.5" />
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label htmlFor="quiet-feed">Quiet the feed while focusing</Label>
+              <p className="text-xs text-muted-foreground">
+                Dims and disables the feed during sessions. The slot machine can wait.
+              </p>
+            </div>
+            <Switch id="quiet-feed" checked={quietFeed} onCheckedChange={setQuietFeed} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={updateSettings.isPending}>
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -718,8 +897,9 @@ export default function Focus() {
             <Timer className="h-7 w-7" /> Focus Guard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Bounded, intentional reading sessions. The feed is calibrated to win; this page takes
-            your side.
+            {new Date().getDay() === 1
+              ? "A fresh week, a clean slate. Bounded, intentional reading sessions — the feed is calibrated to win; this page takes your side."
+              : "Bounded, intentional reading sessions. The feed is calibrated to win; this page takes your side."}
           </p>
         </div>
         {view}

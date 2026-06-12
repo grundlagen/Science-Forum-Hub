@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
-import { BrainCircuit, CheckCircle2, AlertCircle, XCircle, ChevronRight, PenTool } from "lucide-react";
+import { BrainCircuit, CheckCircle2, AlertCircle, XCircle, ChevronRight, PenTool, Timer } from "lucide-react";
 import { useUser } from "@clerk/react";
 import { SignedIn, SignedOut } from "@/lib/clerk-compat";
 import { useState } from "react";
@@ -116,6 +116,11 @@ export default function PaperDetail() {
             {paper.revisionCount > 0 && (
               <Badge variant="secondary" className="ml-auto text-xs">Revision {paper.revisionCount}</Badge>
             )}
+            <SignedIn>
+              <Button variant="outline" size="sm" asChild className={isAuthor ? "" : "ml-auto"}>
+                <Link href={`/focus?paper=${paper.id}`}><Timer className="h-4 w-4 mr-2" /> Focus on this paper</Link>
+              </Button>
+            </SignedIn>
             {isAuthor && (
               <Button variant="outline" size="sm" asChild className="ml-auto">
                 <Link href={`/papers/${paper.id}/edit`}><PenTool className="h-4 w-4 mr-2" /> Edit Paper</Link>

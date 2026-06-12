@@ -854,4 +854,9 @@ export const GetFocusStatsResponse = zod.object({
     ),
   capturesParked: zod.number(),
   capturesLetGo: zod.number(),
+  suggestedMinutes: zod
+    .number()
+    .describe(
+      'Adaptive default duration from recent \"how did it feel?\" answers (challenge–skill balance, Csikszentmihalyi 1990). Falls back to the user\'s default when there is no clear pattern.\n',
+    ),
 });

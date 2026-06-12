@@ -23,4 +23,7 @@ export interface FocusStats {
   weeksActive: number;
   capturesParked: number;
   capturesLetGo: number;
+  /** Adaptive default duration from recent "how did it feel?" answers (challenge–skill balance, Csikszentmihalyi 1990). Falls back to the user's default when there is no clear pattern.
+   */
+  suggestedMinutes: number;
 }

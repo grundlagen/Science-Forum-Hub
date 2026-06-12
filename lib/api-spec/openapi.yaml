@@ -1541,6 +1541,12 @@ components:
           type: integer
         capturesLetGo:
           type: integer
+        suggestedMinutes:
+          type: integer
+          description: >
+            Adaptive default duration from recent "how did it feel?" answers
+            (challenge–skill balance, Csikszentmihalyi 1990). Falls back to the
+            user's default when there is no clear pattern.
       required:
         - weekStart
         - minutesThisWeek
@@ -1551,3 +1557,4 @@ components:
         - weeksActive
         - capturesParked
         - capturesLetGo
+        - suggestedMinutes

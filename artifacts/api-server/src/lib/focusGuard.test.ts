@@ -11,6 +11,7 @@ import {
   weekStart,
   median,
   weeksActive,
+  adaptiveDefaultMinutes,
   closureMessage,
   DEFAULT_SESSION_MINUTES,
 } from "./focusGuard";
@@ -88,6 +89,21 @@ test("weeksActive counts consecutive weeks and tolerates an in-progress week", (
   // A gap breaks the chain.
   assert.equal(weeksActive([w("2026-06-09T10:00:00Z"), w("2026-05-19T10:00:00Z")], T0), 1);
   assert.equal(weeksActive([], T0), 0);
+});
+
+test("adaptiveDefaultMinutes shifts only on a clear recent pattern", () => {
+  assert.equal(adaptiveDefaultMinutes([], 25), 25);
+  assert.equal(adaptiveDefaultMinutes(["overwhelmed"], 25), 25);
+  assert.equal(adaptiveDefaultMinutes(["overwhelmed", "overwhelmed", "engaged"], 25), 15);
+  assert.equal(adaptiveDefaultMinutes(["too_easy", "too_easy"], 25), 35);
+  // A tie is not a pattern.
+  assert.equal(adaptiveDefaultMinutes(["too_easy", "too_easy", "overwhelmed", "overwhelmed"], 25), 25);
+  // Clamped at the ultradian bounds.
+  assert.equal(adaptiveDefaultMinutes(["overwhelmed", "overwhelmed"], 15), 10);
+  assert.equal(adaptiveDefaultMinutes(["too_easy", "too_easy"], 85), 90);
+  // Only the most recent 6 ratings count.
+  const stale = ["engaged", "engaged", "engaged", "engaged", "engaged", "engaged", "too_easy", "too_easy"] as const;
+  assert.equal(adaptiveDefaultMinutes([...stale], 25), 25);
 });
 
 test("closure copy is factual and never shaming", () => {

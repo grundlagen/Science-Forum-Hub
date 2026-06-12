@@ -9,8 +9,9 @@ schema mapping; change the doc before the code).
 
 **Iteration:** 1 (bootstrap) — 2026-06-12
 **Branch:** `claude/relaxed-faraday-6aakff`
-**State:** v0 complete end-to-end. Typecheck green across workspace, scivet
-builds, 10/10 unit tests pass (`pnpm --filter @workspace/api-server test`).
+**State:** v0 + v1 + most of v2 complete end-to-end. Typecheck green across
+workspace, full build green (set `PORT` and `BASE_PATH` env vars), 11/11 unit
+tests pass (`pnpm --filter @workspace/api-server test`).
 
 ## Done in iteration 1
 
@@ -36,6 +37,17 @@ builds, 10/10 unit tests pass (`pnpm --filter @workspace/api-server test`).
   `Partial<UseQueryOptions>` patch the repo depends on; added
   `lib/api-spec/scripts/patch-partial-query-options.mjs` and chained it into
   the `codegen` script so regeneration is reproducible now.
+- **v1 tranche (same day):** "Focus on this paper" button on `paper-detail`
+  → `/focus?paper={id}` with linked-paper chip (unlinkable) on the start form;
+  settings dialog (default length, weekly target, default lock mode, quiet
+  feed toggle); feed interstitial — while a session is active and quietFeed is
+  on, `/feed` shows your own intention back with "Back to my session"; gentle
+  mode gets a one-click bypass, ulysses mode routes to proper closure instead.
+- **v2 tranche (same day):** `adaptiveDefaultMinutes` in `focusGuard.ts`
+  (last 6 felt-ratings; ≥2 overwhelmed → −10 min, ≥2 too_easy → +10, ties are
+  noise; clamped 10–90) exposed as `FocusStats.suggestedMinutes`, used as the
+  start-form slider default with an explanatory hint; Monday fresh-start copy
+  on the page header.
 
 ## Caveats / known gaps
 
@@ -49,19 +61,20 @@ builds, 10/10 unit tests pass (`pnpm --filter @workspace/api-server test`).
 
 ## Next-run queue (in order)
 
-1. **v1: per-paper entry point** — "Focus on this paper" button on
-   `paper-detail.tsx` → `/focus?paper={id}`; start form reads the query param
-   and pre-links `paperId` (API already supports it; UI doesn't send it yet).
-2. **v1: settings UI** — `/focus` has no way to edit `focus_settings`
-   (weekly target, default duration/lock, quietFeed). Small settings dialog;
-   `useUpdateFocusSettings` hook already generated.
-3. **v1: quiet shell deepening** — route-level guard on `/feed` during a
-   session (gentle "you said you would…" interstitial), not just a dimmed link.
-4. **v2: adaptive durations** — use `felt` history to nudge the default slider
-   value (overwhelmed → shorter, too_easy → longer). Logic belongs in
-   `focusGuard.ts` with tests.
-5. **v2: fresh-start copy** — Monday variant of the start-view header.
-6. Consider an integration-test harness (testcontainers or pglite) for routes.
+1. **Verify in a running app** — start the dev server with a real
+   `DATABASE_URL`, run `pnpm --filter @workspace/db run push`, and walk the
+   whole loop (start → capture → end → triage → stats) end to end; fix
+   whatever reality disagrees with.
+2. **Integration tests for routes** — pglite or testcontainers harness so
+   `focus.ts` (expiry sweep, 409 on double-start, ulysses friction, stats
+   math) is covered beyond pure logic.
+3. **v3: structured ready-to-resume** — show the previous session's
+   `closingNote` on the start form when relinking the same paper ("last time
+   you left off at…"); reading-position bookmarks.
+4. **v3: gentle session-end chime/haptic** (client-only, off by default).
+5. **Polish:** capture triage from session history (currently only in the
+   post-session summary); `/focus` deep-link from the "Focusing" pill could
+   carry scroll state; consider surfacing `closingNote` in history rows.
 
 ## Invariants to preserve (do not "improve" these away)
 

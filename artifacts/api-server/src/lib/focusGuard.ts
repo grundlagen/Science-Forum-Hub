@@ -1,4 +1,4 @@
-import type { FocusLockMode, FocusOutcome } from "@workspace/db";
+import type { FocusFelt, FocusLockMode, FocusOutcome } from "@workspace/db";
 
 // Pure, dependency-free Focus Guard logic. Every constant here traces to a
 // finding documented in docs/FOCUS_GUARD.md — change the doc before the number.
@@ -86,6 +86,25 @@ export function weeksActive(activeWeekStarts: Date[], now: Date): number {
     cursor -= WEEK_MS;
   }
   return count;
+}
+
+// Challenge–skill calibration (Csikszentmihalyi): nudge the default duration
+// from recent "how did it feel?" answers. Conservative on purpose — one bad
+// session is noise; a pattern is a signal. Looks at the last 6 rated sessions.
+export function adaptiveDefaultMinutes(
+  recentFelt: FocusFelt[],
+  fallbackMinutes: number,
+): number {
+  const window = recentFelt.slice(0, 6);
+  const overwhelmed = window.filter((f) => f === "overwhelmed").length;
+  const tooEasy = window.filter((f) => f === "too_easy").length;
+  if (overwhelmed >= 2 && overwhelmed > tooEasy) {
+    return Math.max(MIN_SESSION_MINUTES, fallbackMinutes - 10);
+  }
+  if (tooEasy >= 2 && tooEasy > overwhelmed) {
+    return Math.min(MAX_SESSION_MINUTES, fallbackMinutes + 10);
+  }
+  return fallbackMinutes;
 }
 
 // Closure copy: factual, warm, never shaming (Self-Determination Theory).

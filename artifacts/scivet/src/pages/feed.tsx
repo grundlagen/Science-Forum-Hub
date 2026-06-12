@@ -1,17 +1,20 @@
 import { Layout } from "@/components/layout";
-import { useGetTrendingFeed, useGetPromotedFeed, useGetPublishedFeed, useListPapers } from "@workspace/api-client-react";
+import { useGetTrendingFeed, useGetPromotedFeed, useGetPublishedFeed, useListPapers, useGetActiveFocusSession } from "@workspace/api-client-react";
 import { PaperCard } from "@/components/paper-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Flame, Star, Award, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Flame, Star, Award, Clock, Timer } from "lucide-react";
 import { useUser } from "@clerk/react";
 import { SignedIn } from "@/lib/clerk-compat";
-import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
 
 export default function Feed() {
   const { isSignedIn, isLoaded } = useUser();
   const [, setLocation] = useLocation();
+  const [focusBypassed, setFocusBypassed] = useState(false);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -19,12 +22,54 @@ export default function Feed() {
     }
   }, [isLoaded, isSignedIn, setLocation]);
 
-  const { data: trending, isLoading: isLoadingTrending } = useGetTrendingFeed();
-  const { data: promoted, isLoading: isLoadingPromoted } = useGetPromotedFeed();
-  const { data: published, isLoading: isLoadingPublished } = useGetPublishedFeed();
-  const { data: recent, isLoading: isLoadingRecent } = useListPapers({ sort: 'recent', limit: 10 });
+  const { data: activeFocus } = useGetActiveFocusSession({
+    query: { enabled: isLoaded && !!isSignedIn, staleTime: 30_000 },
+  });
+  const guarding = !!activeFocus?.session && activeFocus.quietFeed && !focusBypassed;
+
+  const { data: trending, isLoading: isLoadingTrending } = useGetTrendingFeed({ query: { enabled: !guarding } });
+  const { data: promoted, isLoading: isLoadingPromoted } = useGetPromotedFeed({ query: { enabled: !guarding } });
+  const { data: published, isLoading: isLoadingPublished } = useGetPublishedFeed({ query: { enabled: !guarding } });
+  const { data: recent, isLoading: isLoadingRecent } = useListPapers({ sort: 'recent', limit: 10 }, { query: { enabled: !guarding } });
 
   if (!isLoaded || !isSignedIn) return null;
+
+  // Quiet shell: while a focus session is active, the feed steps aside and
+  // hands you back your own words (docs/FOCUS_GUARD.md §1.4, §1.11).
+  if (guarding && activeFocus?.session) {
+    const session = activeFocus.session;
+    const ulysses = session.lockMode === "ulysses";
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-24 max-w-xl">
+          <Card className="text-center">
+            <CardContent className="pt-10 pb-8 space-y-5">
+              <Timer className="h-8 w-8 mx-auto text-primary animate-pulse" />
+              <p className="text-sm text-muted-foreground uppercase tracking-widest">You said you would</p>
+              <p className="text-lg font-serif italic">“{session.intention}”</p>
+              <p className="text-sm text-muted-foreground">
+                The feed will still be here afterward — it always is. Your session won't be.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+                <Button asChild size="lg">
+                  <Link href="/focus">Back to my session</Link>
+                </Button>
+                {ulysses ? (
+                  <Button variant="ghost" asChild>
+                    <Link href="/focus">End the session properly first</Link>
+                  </Button>
+                ) : (
+                  <Button variant="ghost" onClick={() => setFocusBypassed(true)}>
+                    Break my focus and browse anyway
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

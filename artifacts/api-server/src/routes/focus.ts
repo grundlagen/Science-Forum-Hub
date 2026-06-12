@@ -33,6 +33,7 @@ import {
   weekStart,
   median,
   weeksActive,
+  adaptiveDefaultMinutes,
   closureMessage,
   COMPLETION_WINDOW_DAYS,
 } from "../lib/focusGuard";
@@ -444,6 +445,11 @@ router.get("/focus/stats", requireAuth, async (req, res): Promise<void> => {
     .from(focusCapturesTable)
     .where(and(eq(focusCapturesTable.userId, userId), eq(focusCapturesTable.resolution, "let_go")));
 
+  const recentFelt = ended
+    .filter((s) => s.felt != null)
+    .sort((a, b) => b.endedAt!.getTime() - a.endedAt!.getTime())
+    .map((s) => s.felt!);
+
   res.json({
     weekStart: thisWeek,
     minutesThisWeek: Math.round(inThisWeek.reduce((sum, s) => sum + s.actualSeconds!, 0) / 60),
@@ -454,6 +460,7 @@ router.get("/focus/stats", requireAuth, async (req, res): Promise<void> => {
     weeksActive: weeksActive(ended.map((s) => s.endedAt!), now),
     capturesParked: parked.n,
     capturesLetGo: letGo.n,
+    suggestedMinutes: adaptiveDefaultMinutes(recentFelt, settings.defaultMinutes),
   });
 });
 
