@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { SignedIn, SignedOut } from "@/lib/clerk-compat";
+import { useGetActiveFocusSession } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,13 +12,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BookOpen, Compass, Plus, LogOut, User } from "lucide-react";
+import { BookOpen, Compass, Plus, LogOut, User, Timer } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  // Quiet shell: while a focus session is active, the feed link steps back
+  // (attentional residue — see docs/FOCUS_GUARD.md §1.3, §1.11).
+  const { data: activeFocus } = useGetActiveFocusSession({
+    query: { enabled: !!isSignedIn, staleTime: 30_000, refetchInterval: 60_000 },
+  });
+  const focusing = !!activeFocus?.session;
+  const quietFeed = focusing && activeFocus.quietFeed;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -38,18 +47,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 Explore
               </Link>
               <SignedIn>
-                <Link 
-                  href="/feed" 
-                  className={`flex items-center gap-2 transition-colors hover:text-foreground/80 ${location === "/feed" ? "text-foreground" : "text-foreground/60"}`}
+                <Link
+                  href="/feed"
+                  className={`flex items-center gap-2 transition-colors hover:text-foreground/80 ${quietFeed ? "opacity-30 pointer-events-none" : ""} ${location === "/feed" ? "text-foreground" : "text-foreground/60"}`}
+                  aria-disabled={quietFeed}
+                  title={quietFeed ? "Quiet during your focus session" : undefined}
                 >
                   <BookOpen className="h-4 w-4" />
                   Feed
+                </Link>
+                <Link
+                  href="/focus"
+                  className={`flex items-center gap-2 transition-colors hover:text-foreground/80 ${location === "/focus" ? "text-foreground" : "text-foreground/60"}`}
+                >
+                  <Timer className="h-4 w-4" />
+                  Focus
                 </Link>
               </SignedIn>
             </nav>
           </div>
 
           <div className="flex items-center gap-4">
+            {focusing && location !== "/focus" && (
+              <Link href="/focus">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+                  <Timer className="h-3 w-3 animate-pulse" />
+                  Focusing
+                </span>
+              </Link>
+            )}
             <SignedIn>
               <Link href="/submit">
                 <Button variant="default" size="sm" className="hidden sm:flex gap-2">

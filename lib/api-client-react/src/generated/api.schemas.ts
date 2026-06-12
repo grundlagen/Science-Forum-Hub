@@ -229,6 +229,198 @@ export interface FeedStats {
   totalReviews: number;
 }
 
+/**
+ * Self-imposed precommitment level (Ariely & Wertenbroch 2002). "gentle" reminds you of your intention before leaving; "ulysses" asks you to write down why you're abandoning. There is deliberately no hard lock.
+
+ */
+export type FocusLockMode = (typeof FocusLockMode)[keyof typeof FocusLockMode];
+
+export const FocusLockMode = {
+  gentle: "gentle",
+  ulysses: "ulysses",
+} as const;
+
+export type FocusOutcome = (typeof FocusOutcome)[keyof typeof FocusOutcome];
+
+export const FocusOutcome = {
+  completed: "completed",
+  abandoned: "abandoned",
+  overran: "overran",
+  expired: "expired",
+} as const;
+
+/**
+ * Challenge–skill calibration signal (Csikszentmihalyi 1990).
+ */
+export type FocusFelt = (typeof FocusFelt)[keyof typeof FocusFelt];
+
+export const FocusFelt = {
+  too_easy: "too_easy",
+  engaged: "engaged",
+  overwhelmed: "overwhelmed",
+} as const;
+
+export type FocusCaptureKind =
+  (typeof FocusCaptureKind)[keyof typeof FocusCaptureKind];
+
+export const FocusCaptureKind = {
+  thought: "thought",
+  todo: "todo",
+  lookup: "lookup",
+} as const;
+
+export type FocusCaptureResolution =
+  (typeof FocusCaptureResolution)[keyof typeof FocusCaptureResolution];
+
+export const FocusCaptureResolution = {
+  done: "done",
+  kept: "kept",
+  let_go: "let_go",
+} as const;
+
+export interface FocusSettings {
+  defaultMinutes: number;
+  defaultLockMode: FocusLockMode;
+  weeklyTargetMinutes: number;
+  quietFeed: boolean;
+}
+
+export interface FocusSettingsUpdateInput {
+  /**
+   * @minimum 10
+   * @maximum 90
+   */
+  defaultMinutes?: number;
+  defaultLockMode?: FocusLockMode;
+  /**
+   * @minimum 10
+   * @maximum 2400
+   */
+  weeklyTargetMinutes?: number;
+  quietFeed?: boolean;
+}
+
+export interface FocusSession {
+  id: number;
+  /** @nullable */
+  paperId: number | null;
+  /** @nullable */
+  paperTitle: string | null;
+  intention: string;
+  plannedMinutes: number;
+  lockMode: FocusLockMode;
+  startedAt: string;
+  /** @nullable */
+  endedAt: string | null;
+  outcome: FocusOutcome | null;
+  /** @nullable */
+  actualSeconds: number | null;
+  felt: FocusFelt | null;
+  /** @nullable */
+  closingNote: string | null;
+  captureCount: number;
+}
+
+export interface FocusSessionStartInput {
+  /**
+   * Implementation intention (Gollwitzer 1999) — one concrete sentence stating what you will do during this session.
+
+   * @minLength 3
+   * @maxLength 280
+   */
+  intention: string;
+  /**
+   * @minimum 10
+   * @maximum 90
+   */
+  plannedMinutes?: number;
+  lockMode?: FocusLockMode;
+  /** @nullable */
+  paperId?: number | null;
+}
+
+export type FocusSessionEndInputAction =
+  (typeof FocusSessionEndInputAction)[keyof typeof FocusSessionEndInputAction];
+
+export const FocusSessionEndInputAction = {
+  complete: "complete",
+  abandon: "abandon",
+} as const;
+
+export interface FocusSessionEndInput {
+  action: FocusSessionEndInputAction;
+  felt?: FocusFelt | null;
+  /**
+   * Ready-to-resume note (Leroy & Glomb 2018) — where you left off and what comes next. Reduces attentional residue.
+
+   * @nullable
+   */
+  closingNote?: string | null;
+  /**
+   * Required when abandoning a ulysses-mode session early.
+   * @nullable
+   */
+  abandonReason?: string | null;
+}
+
+export interface FocusCapture {
+  id: number;
+  sessionId: number;
+  body: string;
+  kind: FocusCaptureKind;
+  capturedAt: string;
+  /** @nullable */
+  resolvedAt: string | null;
+  resolution: FocusCaptureResolution | null;
+}
+
+export interface FocusSessionEndResult {
+  session: FocusSession;
+  /** Factual, non-shaming closure copy. */
+  message: string;
+  suggestBreakMinutes: number;
+  captures: FocusCapture[];
+}
+
+export interface ActiveFocusSession {
+  session: FocusSession | null;
+  /** @nullable */
+  remainingSeconds: number | null;
+  quietFeed: boolean;
+}
+
+export interface FocusCaptureCreateInput {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  body: string;
+  kind?: FocusCaptureKind;
+}
+
+export interface FocusCaptureResolveInput {
+  resolution: FocusCaptureResolution;
+}
+
+export interface FocusStats {
+  weekStart: string;
+  minutesThisWeek: number;
+  weeklyTargetMinutes: number;
+  sessionsThisWeek: number;
+  /**
+   * Completed+overran over all ended sessions, last 28 days.
+   * @nullable
+   */
+  completionRate: number | null;
+  /** @nullable */
+  medianSessionMinutes: number | null;
+  /** Weekly cadence, not a daily streak — any focused minutes in a week keeps it alive. Rest days are a feature (Deci & Ryan 2000).
+   */
+  weeksActive: number;
+  capturesParked: number;
+  capturesLetGo: number;
+}
+
 export type ListPapersParams = {
   stage?: ListPapersStage;
   field?: string;
@@ -257,3 +449,7 @@ export const ListPapersSort = {
   recent: "recent",
   top: "top",
 } as const;
+
+export type ListFocusSessionsParams = {
+  limit?: number;
+};

@@ -539,3 +539,319 @@ export const GetUserProfileResponse = zod.object({
     commentsPosted: zod.number(),
   }),
 });
+
+/**
+ * @summary Current user's Focus Guard settings (defaults created on first read)
+ */
+export const GetFocusSettingsResponse = zod.object({
+  defaultMinutes: zod.number(),
+  defaultLockMode: zod
+    .enum(["gentle", "ulysses"])
+    .describe(
+      'Self-imposed precommitment level (Ariely & Wertenbroch 2002). \"gentle\" reminds you of your intention before leaving; \"ulysses\" asks you to write down why you\'re abandoning. There is deliberately no hard lock.\n',
+    ),
+  weeklyTargetMinutes: zod.number(),
+  quietFeed: zod.boolean(),
+});
+
+/**
+ * @summary Update Focus Guard settings
+ */
+export const updateFocusSettingsBodyDefaultMinutesMin = 10;
+export const updateFocusSettingsBodyDefaultMinutesMax = 90;
+
+export const updateFocusSettingsBodyWeeklyTargetMinutesMin = 10;
+export const updateFocusSettingsBodyWeeklyTargetMinutesMax = 2400;
+
+export const UpdateFocusSettingsBody = zod.object({
+  defaultMinutes: zod
+    .number()
+    .min(updateFocusSettingsBodyDefaultMinutesMin)
+    .max(updateFocusSettingsBodyDefaultMinutesMax)
+    .optional(),
+  defaultLockMode: zod
+    .enum(["gentle", "ulysses"])
+    .optional()
+    .describe(
+      'Self-imposed precommitment level (Ariely & Wertenbroch 2002). \"gentle\" reminds you of your intention before leaving; \"ulysses\" asks you to write down why you\'re abandoning. There is deliberately no hard lock.\n',
+    ),
+  weeklyTargetMinutes: zod
+    .number()
+    .min(updateFocusSettingsBodyWeeklyTargetMinutesMin)
+    .max(updateFocusSettingsBodyWeeklyTargetMinutesMax)
+    .optional(),
+  quietFeed: zod.boolean().optional(),
+});
+
+export const UpdateFocusSettingsResponse = zod.object({
+  defaultMinutes: zod.number(),
+  defaultLockMode: zod
+    .enum(["gentle", "ulysses"])
+    .describe(
+      'Self-imposed precommitment level (Ariely & Wertenbroch 2002). \"gentle\" reminds you of your intention before leaving; \"ulysses\" asks you to write down why you\'re abandoning. There is deliberately no hard lock.\n',
+    ),
+  weeklyTargetMinutes: zod.number(),
+  quietFeed: zod.boolean(),
+});
+
+/**
+ * @summary Start a focus session (requires an implementation intention)
+ */
+export const startFocusSessionBodyIntentionMin = 3;
+export const startFocusSessionBodyIntentionMax = 280;
+
+export const startFocusSessionBodyPlannedMinutesMin = 10;
+export const startFocusSessionBodyPlannedMinutesMax = 90;
+
+export const StartFocusSessionBody = zod.object({
+  intention: zod
+    .string()
+    .min(startFocusSessionBodyIntentionMin)
+    .max(startFocusSessionBodyIntentionMax)
+    .describe(
+      "Implementation intention (Gollwitzer 1999) — one concrete sentence stating what you will do during this session.\n",
+    ),
+  plannedMinutes: zod
+    .number()
+    .min(startFocusSessionBodyPlannedMinutesMin)
+    .max(startFocusSessionBodyPlannedMinutesMax)
+    .optional(),
+  lockMode: zod
+    .enum(["gentle", "ulysses"])
+    .optional()
+    .describe(
+      'Self-imposed precommitment level (Ariely & Wertenbroch 2002). \"gentle\" reminds you of your intention before leaving; \"ulysses\" asks you to write down why you\'re abandoning. There is deliberately no hard lock.\n',
+    ),
+  paperId: zod.number().nullish(),
+});
+
+/**
+ * @summary Recent focus sessions for the current user
+ */
+export const ListFocusSessionsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListFocusSessionsResponseItem = zod.object({
+  id: zod.number(),
+  paperId: zod.number().nullable(),
+  paperTitle: zod.string().nullable(),
+  intention: zod.string(),
+  plannedMinutes: zod.number(),
+  lockMode: zod
+    .enum(["gentle", "ulysses"])
+    .describe(
+      'Self-imposed precommitment level (Ariely & Wertenbroch 2002). \"gentle\" reminds you of your intention before leaving; \"ulysses\" asks you to write down why you\'re abandoning. There is deliberately no hard lock.\n',
+    ),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  outcome: zod.union([
+    zod.enum(["completed", "abandoned", "overran", "expired"]),
+    zod.null(),
+  ]),
+  actualSeconds: zod.number().nullable(),
+  felt: zod.union([
+    zod
+      .enum(["too_easy", "engaged", "overwhelmed"])
+      .describe("Challenge–skill calibration signal (Csikszentmihalyi 1990)."),
+    zod.null(),
+  ]),
+  closingNote: zod.string().nullable(),
+  captureCount: zod.number(),
+});
+export const ListFocusSessionsResponse = zod.array(
+  ListFocusSessionsResponseItem,
+);
+
+/**
+ * @summary The currently active session, if any (the quiet-shell poll)
+ */
+export const GetActiveFocusSessionResponse = zod.object({
+  session: zod.union([
+    zod.object({
+      id: zod.number(),
+      paperId: zod.number().nullable(),
+      paperTitle: zod.string().nullable(),
+      intention: zod.string(),
+      plannedMinutes: zod.number(),
+      lockMode: zod
+        .enum(["gentle", "ulysses"])
+        .describe(
+          'Self-imposed precommitment level (Ariely & Wertenbroch 2002). \"gentle\" reminds you of your intention before leaving; \"ulysses\" asks you to write down why you\'re abandoning. There is deliberately no hard lock.\n',
+        ),
+      startedAt: zod.coerce.date(),
+      endedAt: zod.coerce.date().nullable(),
+      outcome: zod.union([
+        zod.enum(["completed", "abandoned", "overran", "expired"]),
+        zod.null(),
+      ]),
+      actualSeconds: zod.number().nullable(),
+      felt: zod.union([
+        zod
+          .enum(["too_easy", "engaged", "overwhelmed"])
+          .describe(
+            "Challenge–skill calibration signal (Csikszentmihalyi 1990).",
+          ),
+        zod.null(),
+      ]),
+      closingNote: zod.string().nullable(),
+      captureCount: zod.number(),
+    }),
+    zod.null(),
+  ]),
+  remainingSeconds: zod.number().nullable(),
+  quietFeed: zod.boolean(),
+});
+
+/**
+ * @summary End a session — the closure ceremony
+ */
+export const EndFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const EndFocusSessionBody = zod.object({
+  action: zod.enum(["complete", "abandon"]),
+  felt: zod
+    .union([
+      zod
+        .enum(["too_easy", "engaged", "overwhelmed"])
+        .describe(
+          "Challenge–skill calibration signal (Csikszentmihalyi 1990).",
+        ),
+      zod.null(),
+    ])
+    .optional(),
+  closingNote: zod
+    .string()
+    .nullish()
+    .describe(
+      "Ready-to-resume note (Leroy & Glomb 2018) — where you left off and what comes next. Reduces attentional residue.\n",
+    ),
+  abandonReason: zod
+    .string()
+    .nullish()
+    .describe("Required when abandoning a ulysses-mode session early."),
+});
+
+export const EndFocusSessionResponse = zod.object({
+  session: zod.object({
+    id: zod.number(),
+    paperId: zod.number().nullable(),
+    paperTitle: zod.string().nullable(),
+    intention: zod.string(),
+    plannedMinutes: zod.number(),
+    lockMode: zod
+      .enum(["gentle", "ulysses"])
+      .describe(
+        'Self-imposed precommitment level (Ariely & Wertenbroch 2002). \"gentle\" reminds you of your intention before leaving; \"ulysses\" asks you to write down why you\'re abandoning. There is deliberately no hard lock.\n',
+      ),
+    startedAt: zod.coerce.date(),
+    endedAt: zod.coerce.date().nullable(),
+    outcome: zod.union([
+      zod.enum(["completed", "abandoned", "overran", "expired"]),
+      zod.null(),
+    ]),
+    actualSeconds: zod.number().nullable(),
+    felt: zod.union([
+      zod
+        .enum(["too_easy", "engaged", "overwhelmed"])
+        .describe(
+          "Challenge–skill calibration signal (Csikszentmihalyi 1990).",
+        ),
+      zod.null(),
+    ]),
+    closingNote: zod.string().nullable(),
+    captureCount: zod.number(),
+  }),
+  message: zod.string().describe("Factual, non-shaming closure copy."),
+  suggestBreakMinutes: zod.number(),
+  captures: zod.array(
+    zod.object({
+      id: zod.number(),
+      sessionId: zod.number(),
+      body: zod.string(),
+      kind: zod.enum(["thought", "todo", "lookup"]),
+      capturedAt: zod.coerce.date(),
+      resolvedAt: zod.coerce.date().nullable(),
+      resolution: zod.union([zod.enum(["done", "kept", "let_go"]), zod.null()]),
+    }),
+  ),
+});
+
+/**
+ * @summary Park an intrusive thought (only while the session is active)
+ */
+export const CreateFocusCaptureParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createFocusCaptureBodyBodyMax = 500;
+
+export const CreateFocusCaptureBody = zod.object({
+  body: zod.string().min(1).max(createFocusCaptureBodyBodyMax),
+  kind: zod.enum(["thought", "todo", "lookup"]).optional(),
+});
+
+/**
+ * @summary List a session's parked thoughts for triage
+ */
+export const ListFocusCapturesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListFocusCapturesResponseItem = zod.object({
+  id: zod.number(),
+  sessionId: zod.number(),
+  body: zod.string(),
+  kind: zod.enum(["thought", "todo", "lookup"]),
+  capturedAt: zod.coerce.date(),
+  resolvedAt: zod.coerce.date().nullable(),
+  resolution: zod.union([zod.enum(["done", "kept", "let_go"]), zod.null()]),
+});
+export const ListFocusCapturesResponse = zod.array(
+  ListFocusCapturesResponseItem,
+);
+
+/**
+ * @summary Triage a parked thought (done, kept, or let go)
+ */
+export const ResolveFocusCaptureParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResolveFocusCaptureBody = zod.object({
+  resolution: zod.enum(["done", "kept", "let_go"]),
+});
+
+export const ResolveFocusCaptureResponse = zod.object({
+  id: zod.number(),
+  sessionId: zod.number(),
+  body: zod.string(),
+  kind: zod.enum(["thought", "todo", "lookup"]),
+  capturedAt: zod.coerce.date(),
+  resolvedAt: zod.coerce.date().nullable(),
+  resolution: zod.union([zod.enum(["done", "kept", "let_go"]), zod.null()]),
+});
+
+/**
+ * @summary Weekly focus stats (Monday-anchored, no daily streaks by design)
+ */
+export const GetFocusStatsResponse = zod.object({
+  weekStart: zod.coerce.date(),
+  minutesThisWeek: zod.number(),
+  weeklyTargetMinutes: zod.number(),
+  sessionsThisWeek: zod.number(),
+  completionRate: zod
+    .number()
+    .nullable()
+    .describe("Completed+overran over all ended sessions, last 28 days."),
+  medianSessionMinutes: zod.number().nullable(),
+  weeksActive: zod
+    .number()
+    .describe(
+      "Weekly cadence, not a daily streak — any focused minutes in a week keeps it alive. Rest days are a feature (Deci & Ryan 2000).\n",
+    ),
+  capturesParked: zod.number(),
+  capturesLetGo: zod.number(),
+});

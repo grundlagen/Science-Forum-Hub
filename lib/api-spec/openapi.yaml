@@ -21,6 +21,8 @@ tags:
     description: Scientific field taxonomy
   - name: users
     description: User profiles
+  - name: focus
+    description: Focus Guard — psychology-grounded deep-reading sessions
 paths:
   /healthz:
     get:
@@ -424,6 +426,326 @@ paths:
                 $ref: "#/components/schemas/UserProfile"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/settings:
+    get:
+      operationId: getFocusSettings
+      tags: [focus]
+      summary: Current user's Focus Guard settings (defaults created on first read)
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSettings"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    put:
+      operationId: updateFocusSettings
+      tags: [focus]
+      summary: Update Focus Guard settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusSettingsUpdateInput"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSettings"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions:
+    post:
+      operationId: startFocusSession
+      tags: [focus]
+      summary: Start a focus session (requires an implementation intention)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusSessionStartInput"
+      responses:
+        "201":
+          description: Session started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "409":
+          description: A session is already active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    get:
+      operationId: listFocusSessions
+      tags: [focus]
+      summary: Recent focus sessions for the current user
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/active:
+    get:
+      operationId: getActiveFocusSession
+      tags: [focus]
+      summary: The currently active session, if any (the quiet-shell poll)
+      responses:
+        "200":
+          description: Active session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveFocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}/end:
+    post:
+      operationId: endFocusSession
+      tags: [focus]
+      summary: End a session — the closure ceremony
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusSessionEndInput"
+      responses:
+        "200":
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSessionEndResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found or not yours
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "409":
+          description: Session already ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}/captures:
+    post:
+      operationId: createFocusCapture
+      tags: [focus]
+      summary: Park an intrusive thought (only while the session is active)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusCaptureCreateInput"
+      responses:
+        "201":
+          description: Captured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusCapture"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found or not yours
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "409":
+          description: Session not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    get:
+      operationId: listFocusCaptures
+      tags: [focus]
+      summary: List a session's parked thoughts for triage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Captures
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FocusCapture"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found or not yours
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/captures/{id}/resolve:
+    post:
+      operationId: resolveFocusCapture
+      tags: [focus]
+      summary: Triage a parked thought (done, kept, or let go)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusCaptureResolveInput"
+      responses:
+        "200":
+          description: Resolved capture
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusCapture"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found or not yours
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/stats:
+    get:
+      operationId: getFocusStats
+      tags: [focus]
+      summary: Weekly focus stats (Monday-anchored, no daily streaks by design)
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusStats"
+        "401":
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -956,3 +1278,276 @@ components:
         - published
         - contributors
         - totalReviews
+
+    FocusLockMode:
+      type: string
+      enum: [gentle, ulysses]
+      description: >
+        Self-imposed precommitment level (Ariely & Wertenbroch 2002). "gentle"
+        reminds you of your intention before leaving; "ulysses" asks you to
+        write down why you're abandoning. There is deliberately no hard lock.
+
+    FocusOutcome:
+      type: string
+      enum: [completed, abandoned, overran, expired]
+
+    FocusFelt:
+      type: string
+      enum: [too_easy, engaged, overwhelmed]
+      description: Challenge–skill calibration signal (Csikszentmihalyi 1990).
+
+    FocusCaptureKind:
+      type: string
+      enum: [thought, todo, lookup]
+
+    FocusCaptureResolution:
+      type: string
+      enum: [done, kept, let_go]
+
+    FocusSettings:
+      type: object
+      properties:
+        defaultMinutes:
+          type: integer
+        defaultLockMode:
+          $ref: "#/components/schemas/FocusLockMode"
+        weeklyTargetMinutes:
+          type: integer
+        quietFeed:
+          type: boolean
+      required:
+        - defaultMinutes
+        - defaultLockMode
+        - weeklyTargetMinutes
+        - quietFeed
+
+    FocusSettingsUpdateInput:
+      type: object
+      properties:
+        defaultMinutes:
+          type: integer
+          minimum: 10
+          maximum: 90
+        defaultLockMode:
+          $ref: "#/components/schemas/FocusLockMode"
+        weeklyTargetMinutes:
+          type: integer
+          minimum: 10
+          maximum: 2400
+        quietFeed:
+          type: boolean
+
+    FocusSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        paperId:
+          type: ["integer", "null"]
+        paperTitle:
+          type: ["string", "null"]
+        intention:
+          type: string
+        plannedMinutes:
+          type: integer
+        lockMode:
+          $ref: "#/components/schemas/FocusLockMode"
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        outcome:
+          oneOf:
+            - $ref: "#/components/schemas/FocusOutcome"
+            - type: "null"
+        actualSeconds:
+          type: ["integer", "null"]
+        felt:
+          oneOf:
+            - $ref: "#/components/schemas/FocusFelt"
+            - type: "null"
+        closingNote:
+          type: ["string", "null"]
+        captureCount:
+          type: integer
+      required:
+        - id
+        - paperId
+        - paperTitle
+        - intention
+        - plannedMinutes
+        - lockMode
+        - startedAt
+        - endedAt
+        - outcome
+        - actualSeconds
+        - felt
+        - closingNote
+        - captureCount
+
+    FocusSessionStartInput:
+      type: object
+      properties:
+        intention:
+          type: string
+          minLength: 3
+          maxLength: 280
+          description: >
+            Implementation intention (Gollwitzer 1999) — one concrete sentence
+            stating what you will do during this session.
+        plannedMinutes:
+          type: integer
+          minimum: 10
+          maximum: 90
+        lockMode:
+          $ref: "#/components/schemas/FocusLockMode"
+        paperId:
+          type: ["integer", "null"]
+      required:
+        - intention
+
+    FocusSessionEndInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [complete, abandon]
+        felt:
+          oneOf:
+            - $ref: "#/components/schemas/FocusFelt"
+            - type: "null"
+        closingNote:
+          type: ["string", "null"]
+          description: >
+            Ready-to-resume note (Leroy & Glomb 2018) — where you left off and
+            what comes next. Reduces attentional residue.
+        abandonReason:
+          type: ["string", "null"]
+          description: Required when abandoning a ulysses-mode session early.
+      required:
+        - action
+
+    FocusSessionEndResult:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/FocusSession"
+        message:
+          type: string
+          description: Factual, non-shaming closure copy.
+        suggestBreakMinutes:
+          type: integer
+        captures:
+          type: array
+          items:
+            $ref: "#/components/schemas/FocusCapture"
+      required:
+        - session
+        - message
+        - suggestBreakMinutes
+        - captures
+
+    ActiveFocusSession:
+      type: object
+      properties:
+        session:
+          oneOf:
+            - $ref: "#/components/schemas/FocusSession"
+            - type: "null"
+        remainingSeconds:
+          type: ["integer", "null"]
+        quietFeed:
+          type: boolean
+      required:
+        - session
+        - remainingSeconds
+        - quietFeed
+
+    FocusCapture:
+      type: object
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: integer
+        body:
+          type: string
+        kind:
+          $ref: "#/components/schemas/FocusCaptureKind"
+        capturedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: ["string", "null"]
+          format: date-time
+        resolution:
+          oneOf:
+            - $ref: "#/components/schemas/FocusCaptureResolution"
+            - type: "null"
+      required:
+        - id
+        - sessionId
+        - body
+        - kind
+        - capturedAt
+        - resolvedAt
+        - resolution
+
+    FocusCaptureCreateInput:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 500
+        kind:
+          $ref: "#/components/schemas/FocusCaptureKind"
+      required:
+        - body
+
+    FocusCaptureResolveInput:
+      type: object
+      properties:
+        resolution:
+          $ref: "#/components/schemas/FocusCaptureResolution"
+      required:
+        - resolution
+
+    FocusStats:
+      type: object
+      properties:
+        weekStart:
+          type: string
+          format: date-time
+        minutesThisWeek:
+          type: integer
+        weeklyTargetMinutes:
+          type: integer
+        sessionsThisWeek:
+          type: integer
+        completionRate:
+          type: ["number", "null"]
+          description: Completed+overran over all ended sessions, last 28 days.
+        medianSessionMinutes:
+          type: ["number", "null"]
+        weeksActive:
+          type: integer
+          description: >
+            Weekly cadence, not a daily streak — any focused minutes in a week
+            keeps it alive. Rest days are a feature (Deci & Ryan 2000).
+        capturesParked:
+          type: integer
+        capturesLetGo:
+          type: integer
+      required:
+        - weekStart
+        - minutesThisWeek
+        - weeklyTargetMinutes
+        - sessionsThisWeek
+        - completionRate
+        - medianSessionMinutes
+        - weeksActive
+        - capturesParked
+        - capturesLetGo

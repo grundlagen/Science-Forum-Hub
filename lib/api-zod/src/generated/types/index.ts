@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./activeFocusSession";
 export * from "./aiSurvey";
 export * from "./aiSurveyPass";
 export * from "./aiSurveyPassVerdict";
@@ -14,7 +15,24 @@ export * from "./comment";
 export * from "./commentCreateInput";
 export * from "./feedStats";
 export * from "./fieldTag";
+export * from "./focusCapture";
+export * from "./focusCaptureCreateInput";
+export * from "./focusCaptureKind";
+export * from "./focusCaptureResolution";
+export * from "./focusCaptureResolveInput";
+export * from "./focusFelt";
+export * from "./focusLockMode";
+export * from "./focusOutcome";
+export * from "./focusSession";
+export * from "./focusSessionEndInput";
+export * from "./focusSessionEndInputAction";
+export * from "./focusSessionEndResult";
+export * from "./focusSessionStartInput";
+export * from "./focusSettings";
+export * from "./focusSettingsUpdateInput";
+export * from "./focusStats";
 export * from "./healthStatus";
+export * from "./listFocusSessionsParams";
 export * from "./listPapersParams";
 export * from "./listPapersSort";
 export * from "./listPapersStage";
