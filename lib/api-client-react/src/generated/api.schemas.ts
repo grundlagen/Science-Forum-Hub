@@ -70,6 +70,13 @@ export interface Review {
   stance: ReviewStance;
   justification: string;
   createdAt: string;
+  /** True when this verdict followed a qualifying FocusGuard deep session. */
+  focusBacked: boolean;
+  /**
+   * Focused minutes the author spent before casting, if focus-backed.
+   * @nullable
+   */
+  focusMinutes: number | null;
 }
 
 export interface UserStats {
@@ -229,6 +236,227 @@ export interface FeedStats {
   totalReviews: number;
 }
 
+export type FocusTechnique =
+  (typeof FocusTechnique)[keyof typeof FocusTechnique];
+
+export const FocusTechnique = {
+  pomodoro: "pomodoro",
+  deep_work: "deep_work",
+  flowtime: "flowtime",
+  timeboxed: "timeboxed",
+} as const;
+
+export type Chronotype = (typeof Chronotype)[keyof typeof Chronotype];
+
+export const Chronotype = {
+  morning: "morning",
+  evening: "evening",
+  flexible: "flexible",
+} as const;
+
+export type FocusGoalType = (typeof FocusGoalType)[keyof typeof FocusGoalType];
+
+export const FocusGoalType = {
+  read: "read",
+  review: "review",
+  revise: "revise",
+  explore: "explore",
+} as const;
+
+export type FocusSessionStatus =
+  (typeof FocusSessionStatus)[keyof typeof FocusSessionStatus];
+
+export const FocusSessionStatus = {
+  active: "active",
+  paused: "paused",
+  completed: "completed",
+  abandoned: "abandoned",
+} as const;
+
+export type FocusEventKind =
+  (typeof FocusEventKind)[keyof typeof FocusEventKind];
+
+export const FocusEventKind = {
+  distraction: "distraction",
+  pause: "pause",
+  resume: "resume",
+  break_start: "break_start",
+  break_end: "break_end",
+  note: "note",
+  milestone: "milestone",
+} as const;
+
+export interface FocusProfile {
+  userId: string;
+  defaultTechnique: FocusTechnique;
+  defaultFocusMinutes: number;
+  defaultBreakMinutes: number;
+  dailyGoalMinutes: number;
+  chronotype: Chronotype;
+  /** @nullable */
+  pledge: string | null;
+  distractionBlocklist: string[];
+  nudgesEnabled: boolean;
+  streakCount: number;
+  longestStreak: number;
+  /** @nullable */
+  lastQualifyingDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FocusProfileUpdateInput {
+  defaultTechnique?: FocusTechnique;
+  /**
+   * @minimum 5
+   * @maximum 180
+   */
+  defaultFocusMinutes?: number;
+  /**
+   * @minimum 0
+   * @maximum 60
+   */
+  defaultBreakMinutes?: number;
+  /**
+   * @minimum 5
+   * @maximum 600
+   */
+  dailyGoalMinutes?: number;
+  chronotype?: Chronotype;
+  /** @nullable */
+  pledge?: string | null;
+  distractionBlocklist?: string[];
+  nudgesEnabled?: boolean;
+}
+
+export interface FocusSession {
+  id: number;
+  userId: string;
+  /** @nullable */
+  paperId: number | null;
+  goalType: FocusGoalType;
+  technique: FocusTechnique;
+  intent: string;
+  plannedMinutes: number;
+  breakMinutes: number;
+  status: FocusSessionStatus;
+  startedAt: string;
+  /** @nullable */
+  endedAt: string | null;
+  focusedSeconds: number;
+  distractionCount: number;
+  breaksTaken: number;
+  /** @nullable */
+  focusRating: number | null;
+  /** @nullable */
+  flowRating: number | null;
+  /** @nullable */
+  reflection: string | null;
+  /** @nullable */
+  resultReviewId: number | null;
+  createdAt: string;
+}
+
+export interface FocusEvent {
+  id: number;
+  sessionId: number;
+  kind: FocusEventKind;
+  /** @nullable */
+  note: string | null;
+  occurredAt: string;
+}
+
+export interface FocusSessionDetail {
+  session: FocusSession;
+  events: FocusEvent[];
+  qualifiesAsDeep: boolean;
+}
+
+export interface FocusSessionStartInput {
+  /** @nullable */
+  paperId?: number | null;
+  goalType: FocusGoalType;
+  technique: FocusTechnique;
+  /** @minLength 1 */
+  intent: string;
+  /**
+   * @minimum 5
+   * @maximum 180
+   */
+  plannedMinutes: number;
+  /**
+   * @minimum 0
+   * @maximum 60
+   */
+  breakMinutes?: number;
+}
+
+export interface FocusHeartbeatInput {
+  /** @minimum 0 */
+  focusedSeconds: number;
+  status?: FocusSessionStatus;
+}
+
+export interface FocusEventInput {
+  kind: FocusEventKind;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface FocusCompleteInput {
+  /** @minimum 0 */
+  focusedSeconds: number;
+  /**
+   * @minimum 1
+   * @maximum 5
+   * @nullable
+   */
+  focusRating?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 5
+   * @nullable
+   */
+  flowRating?: number | null;
+  /** @nullable */
+  reflection?: string | null;
+}
+
+export interface FocusCompleteResult {
+  session: FocusSession;
+  qualifiesAsDeep: boolean;
+  streakCount: number;
+  streakChanged: boolean;
+  dailyGoalMet: boolean;
+  encouragement: string;
+}
+
+export interface FocusRecommendation {
+  technique: FocusTechnique;
+  focusMinutes: number;
+  breakMinutes: number;
+  suggestedWindow: string;
+  rationale: string;
+  intentTemplate: string;
+}
+
+export interface FocusStats {
+  todayFocusMinutes: number;
+  dailyGoalMinutes: number;
+  dailyGoalMet: boolean;
+  streakCount: number;
+  longestStreak: number;
+  totalSessions: number;
+  completedSessions: number;
+  abandonedSessions: number;
+  totalFocusMinutes: number;
+  deepReviews: number;
+  /** @nullable */
+  avgFocusRating: number | null;
+  /** @nullable */
+  avgFlowRating: number | null;
+}
+
 export type ListPapersParams = {
   stage?: ListPapersStage;
   field?: string;
@@ -257,3 +485,13 @@ export const ListPapersSort = {
   recent: "recent",
   top: "top",
 } as const;
+
+export type GetFocusRecommendationParams = {
+  goalType?: FocusGoalType;
+};
+
+export type ListFocusSessionsParams = {
+  status?: FocusSessionStatus;
+  paperId?: number;
+  limit?: number;
+};

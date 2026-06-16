@@ -344,9 +344,19 @@ export default function PaperDetail() {
               <SignedIn>
                 {!isAuthor && (
                   <div className="space-y-4">
+                    <Link href={`/focus?paperId=${paperId}&goal=review`}>
+                      <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 cursor-pointer hover:bg-primary/10 transition-colors">
+                        <BrainCircuit className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-xs text-foreground/80 leading-snug">
+                          Read it deeply first — a focused session earns this verdict a{" "}
+                          <span className="font-medium text-primary">Deep review</span> badge.
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+                      </div>
+                    </Link>
                     <div className="grid grid-cols-3 gap-2">
-                      <Button 
-                        variant={reviewStance === "endorse" ? "default" : "outline"} 
+                      <Button
+                        variant={reviewStance === "endorse" ? "default" : "outline"}
                         className={reviewStance === "endorse" ? "bg-green-600 hover:bg-green-700" : ""}
                         onClick={() => setReviewStance("endorse")}
                         size="sm"

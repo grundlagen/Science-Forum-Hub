@@ -15,4 +15,11 @@ export interface Review {
   stance: ReviewStance;
   justification: string;
   createdAt: Date;
+  /** True when this verdict followed a qualifying FocusGuard deep session. */
+  focusBacked: boolean;
+  /**
+   * Focused minutes the author spent before casting, if focus-backed.
+   * @nullable
+   */
+  focusMinutes: number | null;
 }

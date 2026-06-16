@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   db,
   profilesTable,
@@ -6,6 +6,9 @@ import {
   aiReportsTable,
   reviewsTable,
   commentsTable,
+  focusProfilesTable,
+  focusSessionsTable,
+  focusEventsTable,
   type RigorReportJson,
   type AiSurveyJson,
   type PaperReferenceJson,
@@ -370,6 +373,9 @@ const PAPERS: SeedPaper[] = [
 
 async function main() {
   // wipe (in dependency order)
+  await db.delete(focusEventsTable);
+  await db.delete(focusSessionsTable);
+  await db.delete(focusProfilesTable);
   await db.delete(commentsTable);
   await db.delete(reviewsTable);
   await db.delete(aiReportsTable);
@@ -461,7 +467,108 @@ async function main() {
     await db.update(papersTable).set({ stage }).where(eq(papersTable.id, paper.id));
   }
 
+  await seedFocus();
+
   console.log("Seed complete:", PAPERS.length, "papers,", PROFILES.length, "profiles");
+}
+
+/**
+ * Seed FocusGuard so the feature is demoable: a methodologist with a focus
+ * habit, a couple of completed deep sessions (one linked to a real review so
+ * its "deep review" badge shows), plus an in-progress session to resume.
+ */
+async function seedFocus() {
+  const userId = "seed_user_yusuf"; // the reproducibility-loving methodologist
+  const today = new Date();
+  const dateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  await db.insert(focusProfilesTable).values({
+    userId,
+    defaultTechnique: "deep_work",
+    defaultFocusMinutes: 50,
+    defaultBreakMinutes: 10,
+    dailyGoalMinutes: 90,
+    chronotype: "morning",
+    pledge: "I read the methods before I form an opinion. No tabs, no shortcuts.",
+    distractionBlocklist: ["email", "chat", "social"],
+    streakCount: 4,
+    longestStreak: 9,
+    lastQualifyingDate: dateStr(today),
+  });
+
+  // A paper this user reviewed — link a deep session to that verdict.
+  const [paper] = await db.select().from(papersTable).limit(1);
+  if (paper) {
+    const [review] = await db
+      .select()
+      .from(reviewsTable)
+      .where(and(eq(reviewsTable.paperId, paper.id), eq(reviewsTable.authorId, userId)))
+      .limit(1);
+
+    const startedAt = new Date(today.getTime() - 1000 * 60 * 60 * 3);
+    const [deepSession] = await db
+      .insert(focusSessionsTable)
+      .values({
+        userId,
+        paperId: paper.id,
+        goalType: "review",
+        technique: "deep_work",
+        intent: "When I start, I will judge the methodology before forming any verdict.",
+        plannedMinutes: 50,
+        breakMinutes: 10,
+        status: "completed",
+        startedAt,
+        endedAt: new Date(startedAt.getTime() + 1000 * 60 * 52),
+        focusedSeconds: 52 * 60,
+        distractionCount: 2,
+        breaksTaken: 1,
+        focusRating: 4,
+        flowRating: 5,
+        reflection: "Lost the thread once at the stats section but caught it. Strong methods.",
+        resultReviewId: review?.id ?? null,
+      })
+      .returning();
+
+    await db.insert(focusEventsTable).values([
+      { sessionId: deepSession.id, kind: "distraction", note: "phone buzzed", occurredAt: new Date(startedAt.getTime() + 1000 * 60 * 12) },
+      { sessionId: deepSession.id, kind: "break_start", occurredAt: new Date(startedAt.getTime() + 1000 * 60 * 25) },
+      { sessionId: deepSession.id, kind: "break_end", occurredAt: new Date(startedAt.getTime() + 1000 * 60 * 35) },
+      { sessionId: deepSession.id, kind: "distraction", note: "urge to check email", occurredAt: new Date(startedAt.getTime() + 1000 * 60 * 44) },
+      { sessionId: deepSession.id, kind: "milestone", note: "reached planned 50m", occurredAt: new Date(startedAt.getTime() + 1000 * 60 * 50) },
+    ]);
+  }
+
+  // An earlier reading session, and one still in progress to resume.
+  const yesterday = new Date(today.getTime() - 1000 * 60 * 60 * 24);
+  await db.insert(focusSessionsTable).values({
+    userId,
+    paperId: paper?.id ?? null,
+    goalType: "read",
+    technique: "pomodoro",
+    intent: "When I start, I will read for understanding and note one claim to test.",
+    plannedMinutes: 25,
+    breakMinutes: 5,
+    status: "completed",
+    startedAt: yesterday,
+    endedAt: new Date(yesterday.getTime() + 1000 * 60 * 26),
+    focusedSeconds: 25 * 60,
+    distractionCount: 0,
+    focusRating: 5,
+    flowRating: 4,
+  });
+
+  await db.insert(focusSessionsTable).values({
+    userId,
+    paperId: null,
+    goalType: "explore",
+    technique: "flowtime",
+    intent: "When I start, I will skim three papers and capture what surprises me.",
+    plannedMinutes: 30,
+    breakMinutes: 5,
+    status: "active",
+    focusedSeconds: 8 * 60,
+  });
 }
 
 main().then(() => process.exit(0)).catch((e) => {

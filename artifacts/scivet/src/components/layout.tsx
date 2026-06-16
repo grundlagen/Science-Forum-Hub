@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BookOpen, Compass, Plus, LogOut, User } from "lucide-react";
+import { BookOpen, Compass, Plus, LogOut, User, Brain } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -38,12 +38,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 Explore
               </Link>
               <SignedIn>
-                <Link 
-                  href="/feed" 
+                <Link
+                  href="/feed"
                   className={`flex items-center gap-2 transition-colors hover:text-foreground/80 ${location === "/feed" ? "text-foreground" : "text-foreground/60"}`}
                 >
                   <BookOpen className="h-4 w-4" />
                   Feed
+                </Link>
+                <Link
+                  href="/focus"
+                  className={`flex items-center gap-2 transition-colors hover:text-foreground/80 ${location.startsWith("/focus") ? "text-foreground" : "text-foreground/60"}`}
+                >
+                  <Brain className="h-4 w-4" />
+                  Focus
                 </Link>
               </SignedIn>
             </nav>

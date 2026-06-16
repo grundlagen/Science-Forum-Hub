@@ -4,6 +4,7 @@ import { useParams } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PaperCard } from "@/components/paper-card";
+import { FocusReviewBadge } from "@/components/focus-review-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, MessageSquareQuote, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -100,6 +101,11 @@ export default function Profile() {
                     <div className="text-xs text-muted-foreground mt-2">
                       {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
                     </div>
+                    {review.focusBacked && (
+                      <div className="mt-3">
+                        <FocusReviewBadge minutes={review.focusMinutes} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium text-sm text-muted-foreground mb-2">Paper ID #{review.paperId}</h4>

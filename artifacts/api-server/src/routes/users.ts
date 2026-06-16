@@ -5,6 +5,7 @@ import { GetUserProfileParams } from "@workspace/api-zod";
 import { getUserId } from "../lib/auth";
 import { getOrCreateProfile, getProfilesByIds, profileToPublic } from "../lib/profiles";
 import { papersToSummaries } from "../lib/paperHelpers";
+import { getReviewFocusBacking } from "../lib/focusProfiles";
 
 const router: IRouter = Router();
 
@@ -39,6 +40,7 @@ router.get("/users/:id", async (req, res): Promise<void> => {
     .orderBy(desc(reviewsTable.createdAt))
     .limit(50);
   const reviewerProfiles = await getProfilesByIds(reviewRows.map((r) => r.authorId));
+  const reviewBacking = await getReviewFocusBacking(reviewRows.map((r) => r.id));
 
   const [{ cnt: commentsCnt }] = await db
     .select({ cnt: sql<number>`count(*)::int` })
@@ -51,14 +53,19 @@ router.get("/users/:id", async (req, res): Promise<void> => {
   res.json({
     user: profileToPublic(profile),
     papers: summaries,
-    reviews: reviewRows.map((r) => ({
-      id: r.id,
-      paperId: r.paperId,
-      author: profileToPublic(reviewerProfiles.get(r.authorId)!),
-      stance: r.stance,
-      justification: r.justification,
-      createdAt: r.createdAt,
-    })),
+    reviews: reviewRows.map((r) => {
+      const b = reviewBacking.get(r.id)!;
+      return {
+        id: r.id,
+        paperId: r.paperId,
+        author: profileToPublic(reviewerProfiles.get(r.authorId)!),
+        stance: r.stance,
+        justification: r.justification,
+        createdAt: r.createdAt,
+        focusBacked: b.focusBacked,
+        focusMinutes: b.focusMinutes,
+      };
+    }),
     stats: {
       papersSubmitted: papers.length,
       papersPublished: publishedCount,
