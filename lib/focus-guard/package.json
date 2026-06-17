@@ -1,0 +1,19 @@
+{
+  "name": "@workspace/focus-guard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./engine": "./src/engine/index.ts"
+  },
+  "scripts": {
+    "verify": "esbuild test/run.ts --bundle --platform=node --format=esm --conditions=workspace --outfile=dist/run.mjs && node dist/run.mjs"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.3"
+  }
+}
