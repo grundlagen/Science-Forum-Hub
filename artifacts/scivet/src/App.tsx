@@ -16,6 +16,7 @@ import PaperDetail from "@/pages/paper-detail";
 import PaperEdit from "@/pages/paper-edit";
 import Profile from "@/pages/profile";
 import Me from "@/pages/me";
+import Focus from "@/pages/focus";
 
 const queryClient = new QueryClient();
 
@@ -36,7 +37,8 @@ function Router() {
       <Route path="/papers/:id/edit" component={PaperEdit} />
       <Route path="/profile/:id" component={Profile} />
       <Route path="/me" component={Me} />
-      
+      <Route path="/focus" component={Focus} />
+
       <Route path="/sign-in/*">
         <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
           <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />

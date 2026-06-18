@@ -539,3 +539,309 @@ export const GetUserProfileResponse = zod.object({
     commentsPosted: zod.number(),
   }),
 });
+
+/**
+ * @summary Get the current user's Focus Guard preferences (creates defaults if absent)
+ */
+export const GetFocusPreferencesResponse = zod.object({
+  userId: zod.string(),
+  defaultCadence: zod.enum(["pomodoro", "ultradian", "flow_state", "custom"]),
+  defaultPlannedMinutes: zod.number(),
+  defaultBreakMinutes: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  guards: zod
+    .object({
+      hideFeed: zod.boolean(),
+      muteNotifications: zod.boolean(),
+      grayscale: zod.boolean(),
+      blockExternal: zod.boolean(),
+      oneTabPledge: zod.boolean(),
+    })
+    .describe("Which protective guards are active for a session."),
+  gentleMode: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update Focus Guard preferences (auth required)
+ */
+export const UpdateFocusPreferencesBody = zod.object({
+  defaultCadence: zod
+    .enum(["pomodoro", "ultradian", "flow_state", "custom"])
+    .optional(),
+  defaultPlannedMinutes: zod.number().optional(),
+  defaultBreakMinutes: zod.number().optional(),
+  dailyGoalMinutes: zod.number().optional(),
+  guards: zod
+    .object({
+      hideFeed: zod.boolean(),
+      muteNotifications: zod.boolean(),
+      grayscale: zod.boolean(),
+      blockExternal: zod.boolean(),
+      oneTabPledge: zod.boolean(),
+    })
+    .optional()
+    .describe("Which protective guards are active for a session."),
+  gentleMode: zod.boolean().optional(),
+});
+
+export const UpdateFocusPreferencesResponse = zod.object({
+  userId: zod.string(),
+  defaultCadence: zod.enum(["pomodoro", "ultradian", "flow_state", "custom"]),
+  defaultPlannedMinutes: zod.number(),
+  defaultBreakMinutes: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  guards: zod
+    .object({
+      hideFeed: zod.boolean(),
+      muteNotifications: zod.boolean(),
+      grayscale: zod.boolean(),
+      blockExternal: zod.boolean(),
+      oneTabPledge: zod.boolean(),
+    })
+    .describe("Which protective guards are active for a session."),
+  gentleMode: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List the current user's focus sessions (most recent first)
+ */
+export const ListFocusSessionsQueryParams = zod.object({
+  status: zod
+    .enum(["planned", "active", "paused", "completed", "abandoned", "all"])
+    .optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListFocusSessionsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  paperId: zod.number().nullable(),
+  activity: zod.enum(["reading", "writing", "reviewing", "deep_work"]),
+  intention: zod.string(),
+  cadence: zod.enum(["pomodoro", "ultradian", "flow_state", "custom"]),
+  plannedMinutes: zod.number(),
+  breakMinutes: zod.number(),
+  guards: zod
+    .object({
+      hideFeed: zod.boolean(),
+      muteNotifications: zod.boolean(),
+      grayscale: zod.boolean(),
+      blockExternal: zod.boolean(),
+      oneTabPledge: zod.boolean(),
+    })
+    .describe("Which protective guards are active for a session."),
+  status: zod.enum(["planned", "active", "paused", "completed", "abandoned"]),
+  startedAt: zod.coerce.date().nullable(),
+  endedAt: zod.coerce.date().nullable(),
+  focusedSeconds: zod.number(),
+  flowScore: zod.number().nullable(),
+  energyBefore: zod.number().nullable(),
+  energyAfter: zod.number().nullable(),
+  reflection: zod.string().nullable(),
+  distractionCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListFocusSessionsResponse = zod.array(
+  ListFocusSessionsResponseItem,
+);
+
+/**
+ * @summary Open a new focus session with a stated intention (auth required)
+ */
+export const StartFocusSessionBody = zod.object({
+  intention: zod.string(),
+  activity: zod
+    .enum(["reading", "writing", "reviewing", "deep_work"])
+    .optional(),
+  cadence: zod
+    .enum(["pomodoro", "ultradian", "flow_state", "custom"])
+    .optional(),
+  plannedMinutes: zod.number().optional(),
+  breakMinutes: zod.number().optional(),
+  paperId: zod.number().nullish(),
+  guards: zod
+    .object({
+      hideFeed: zod.boolean(),
+      muteNotifications: zod.boolean(),
+      grayscale: zod.boolean(),
+      blockExternal: zod.boolean(),
+      oneTabPledge: zod.boolean(),
+    })
+    .optional()
+    .describe("Which protective guards are active for a session."),
+  energyBefore: zod.number().nullish(),
+});
+
+/**
+ * @summary Get a focus session with its parked distractions (owner only)
+ */
+export const GetFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetFocusSessionResponse = zod.object({
+  session: zod.object({
+    id: zod.number(),
+    userId: zod.string(),
+    paperId: zod.number().nullable(),
+    activity: zod.enum(["reading", "writing", "reviewing", "deep_work"]),
+    intention: zod.string(),
+    cadence: zod.enum(["pomodoro", "ultradian", "flow_state", "custom"]),
+    plannedMinutes: zod.number(),
+    breakMinutes: zod.number(),
+    guards: zod
+      .object({
+        hideFeed: zod.boolean(),
+        muteNotifications: zod.boolean(),
+        grayscale: zod.boolean(),
+        blockExternal: zod.boolean(),
+        oneTabPledge: zod.boolean(),
+      })
+      .describe("Which protective guards are active for a session."),
+    status: zod.enum(["planned", "active", "paused", "completed", "abandoned"]),
+    startedAt: zod.coerce.date().nullable(),
+    endedAt: zod.coerce.date().nullable(),
+    focusedSeconds: zod.number(),
+    flowScore: zod.number().nullable(),
+    energyBefore: zod.number().nullable(),
+    energyAfter: zod.number().nullable(),
+    reflection: zod.string().nullable(),
+    distractionCount: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+  distractions: zod.array(
+    zod.object({
+      id: zod.number(),
+      sessionId: zod.number(),
+      kind: zod.enum([
+        "internal_thought",
+        "external_interruption",
+        "task_switch_urge",
+        "anxiety",
+      ]),
+      note: zod.string(),
+      breached: zod.boolean(),
+      resolved: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Advance a session's lifecycle or record post-session reflection (owner only)
+ */
+export const UpdateFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateFocusSessionBody = zod
+  .object({
+    status: zod
+      .enum(["planned", "active", "paused", "completed", "abandoned"])
+      .optional(),
+    focusedSeconds: zod.number().optional(),
+    flowScore: zod.number().optional(),
+    energyAfter: zod.number().optional(),
+    reflection: zod.string().optional(),
+  })
+  .describe(
+    "Patch a session. `status` drives the lifecycle (active\/paused\/completed\/abandoned). On completion, supply self-ratings to close the metacognitive loop.",
+  );
+
+export const UpdateFocusSessionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  paperId: zod.number().nullable(),
+  activity: zod.enum(["reading", "writing", "reviewing", "deep_work"]),
+  intention: zod.string(),
+  cadence: zod.enum(["pomodoro", "ultradian", "flow_state", "custom"]),
+  plannedMinutes: zod.number(),
+  breakMinutes: zod.number(),
+  guards: zod
+    .object({
+      hideFeed: zod.boolean(),
+      muteNotifications: zod.boolean(),
+      grayscale: zod.boolean(),
+      blockExternal: zod.boolean(),
+      oneTabPledge: zod.boolean(),
+    })
+    .describe("Which protective guards are active for a session."),
+  status: zod.enum(["planned", "active", "paused", "completed", "abandoned"]),
+  startedAt: zod.coerce.date().nullable(),
+  endedAt: zod.coerce.date().nullable(),
+  focusedSeconds: zod.number(),
+  flowScore: zod.number().nullable(),
+  energyBefore: zod.number().nullable(),
+  energyAfter: zod.number().nullable(),
+  reflection: zod.string().nullable(),
+  distractionCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Park a distraction during a session instead of acting on it (owner only)
+ */
+export const LogFocusDistractionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const LogFocusDistractionBody = zod.object({
+  kind: zod.enum([
+    "internal_thought",
+    "external_interruption",
+    "task_switch_urge",
+    "anxiety",
+  ]),
+  note: zod.string(),
+  breached: zod.boolean().optional(),
+});
+
+/**
+ * @summary Mark a parked distraction as resolved/unresolved (owner only)
+ */
+export const ResolveFocusDistractionParams = zod.object({
+  id: zod.coerce.number(),
+  distractionId: zod.coerce.number(),
+});
+
+export const ResolveFocusDistractionBody = zod.object({
+  resolved: zod.boolean(),
+});
+
+export const ResolveFocusDistractionResponse = zod.object({
+  id: zod.number(),
+  sessionId: zod.number(),
+  kind: zod.enum([
+    "internal_thought",
+    "external_interruption",
+    "task_switch_urge",
+    "anxiety",
+  ]),
+  note: zod.string(),
+  breached: zod.boolean(),
+  resolved: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Aggregate focus metrics for the current user (streak, today, totals)
+ */
+export const GetFocusStatsResponse = zod.object({
+  focusedMinutesToday: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  goalMetToday: zod.boolean(),
+  currentStreakDays: zod.number(),
+  longestStreakDays: zod.number(),
+  sessionsCompleted: zod.number(),
+  totalFocusedMinutes: zod.number(),
+  averageFlowScore: zod.number().nullable(),
+  breachRate: zod.number(),
+  activeSessionId: zod.number().nullable(),
+});

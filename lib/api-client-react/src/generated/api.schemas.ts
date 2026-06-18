@@ -229,6 +229,171 @@ export interface FeedStats {
   totalReviews: number;
 }
 
+export type FocusActivity = (typeof FocusActivity)[keyof typeof FocusActivity];
+
+export const FocusActivity = {
+  reading: "reading",
+  writing: "writing",
+  reviewing: "reviewing",
+  deep_work: "deep_work",
+} as const;
+
+export type FocusCadence = (typeof FocusCadence)[keyof typeof FocusCadence];
+
+export const FocusCadence = {
+  pomodoro: "pomodoro",
+  ultradian: "ultradian",
+  flow_state: "flow_state",
+  custom: "custom",
+} as const;
+
+export type FocusSessionStatus =
+  (typeof FocusSessionStatus)[keyof typeof FocusSessionStatus];
+
+export const FocusSessionStatus = {
+  planned: "planned",
+  active: "active",
+  paused: "paused",
+  completed: "completed",
+  abandoned: "abandoned",
+} as const;
+
+export type DistractionKind =
+  (typeof DistractionKind)[keyof typeof DistractionKind];
+
+export const DistractionKind = {
+  internal_thought: "internal_thought",
+  external_interruption: "external_interruption",
+  task_switch_urge: "task_switch_urge",
+  anxiety: "anxiety",
+} as const;
+
+/**
+ * Which protective guards are active for a session.
+ */
+export interface FocusGuardConfig {
+  hideFeed: boolean;
+  muteNotifications: boolean;
+  grayscale: boolean;
+  blockExternal: boolean;
+  oneTabPledge: boolean;
+}
+
+export interface FocusSession {
+  id: number;
+  userId: string;
+  /** @nullable */
+  paperId: number | null;
+  activity: FocusActivity;
+  intention: string;
+  cadence: FocusCadence;
+  plannedMinutes: number;
+  breakMinutes: number;
+  guards: FocusGuardConfig;
+  status: FocusSessionStatus;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  endedAt: string | null;
+  focusedSeconds: number;
+  /** @nullable */
+  flowScore: number | null;
+  /** @nullable */
+  energyBefore: number | null;
+  /** @nullable */
+  energyAfter: number | null;
+  /** @nullable */
+  reflection: string | null;
+  distractionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FocusDistraction {
+  id: number;
+  sessionId: number;
+  kind: DistractionKind;
+  note: string;
+  breached: boolean;
+  resolved: boolean;
+  createdAt: string;
+}
+
+export interface FocusSessionDetail {
+  session: FocusSession;
+  distractions: FocusDistraction[];
+}
+
+export interface FocusPreferences {
+  userId: string;
+  defaultCadence: FocusCadence;
+  defaultPlannedMinutes: number;
+  defaultBreakMinutes: number;
+  dailyGoalMinutes: number;
+  guards: FocusGuardConfig;
+  gentleMode: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FocusStats {
+  focusedMinutesToday: number;
+  dailyGoalMinutes: number;
+  goalMetToday: boolean;
+  currentStreakDays: number;
+  longestStreakDays: number;
+  sessionsCompleted: number;
+  totalFocusedMinutes: number;
+  /** @nullable */
+  averageFlowScore: number | null;
+  breachRate: number;
+  /** @nullable */
+  activeSessionId: number | null;
+}
+
+export interface StartFocusSessionInput {
+  intention: string;
+  activity?: FocusActivity;
+  cadence?: FocusCadence;
+  plannedMinutes?: number;
+  breakMinutes?: number;
+  /** @nullable */
+  paperId?: number | null;
+  guards?: FocusGuardConfig;
+  /** @nullable */
+  energyBefore?: number | null;
+}
+
+/**
+ * Patch a session. `status` drives the lifecycle (active/paused/completed/abandoned). On completion, supply self-ratings to close the metacognitive loop.
+ */
+export interface UpdateFocusSessionInput {
+  status?: FocusSessionStatus;
+  focusedSeconds?: number;
+  flowScore?: number;
+  energyAfter?: number;
+  reflection?: string;
+}
+
+export interface LogDistractionInput {
+  kind: DistractionKind;
+  note: string;
+  breached?: boolean;
+}
+
+export interface ResolveDistractionInput {
+  resolved: boolean;
+}
+
+export interface FocusPreferencesInput {
+  defaultCadence?: FocusCadence;
+  defaultPlannedMinutes?: number;
+  defaultBreakMinutes?: number;
+  dailyGoalMinutes?: number;
+  guards?: FocusGuardConfig;
+  gentleMode?: boolean;
+}
+
 export type ListPapersParams = {
   stage?: ListPapersStage;
   field?: string;
@@ -256,4 +421,21 @@ export const ListPapersSort = {
   trending: "trending",
   recent: "recent",
   top: "top",
+} as const;
+
+export type ListFocusSessionsParams = {
+  status?: ListFocusSessionsStatus;
+  limit?: number;
+};
+
+export type ListFocusSessionsStatus =
+  (typeof ListFocusSessionsStatus)[keyof typeof ListFocusSessionsStatus];
+
+export const ListFocusSessionsStatus = {
+  planned: "planned",
+  active: "active",
+  paused: "paused",
+  completed: "completed",
+  abandoned: "abandoned",
+  all: "all",
 } as const;
