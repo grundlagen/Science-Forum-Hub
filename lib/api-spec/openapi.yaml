@@ -21,6 +21,8 @@ tags:
     description: Scientific field taxonomy
   - name: users
     description: User profiles
+  - name: focus
+    description: Focus Guard — psychology-grounded deep-work sessions
 paths:
   /healthz:
     get:
@@ -424,6 +426,281 @@ paths:
                 $ref: "#/components/schemas/UserProfile"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/techniques:
+    get:
+      operationId: listFocusTechniques
+      tags: [focus]
+      summary: List timeboxing technique presets with their psychological basis
+      responses:
+        "200":
+          description: Technique presets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TechniquePreset"
+
+  /focus/intention/assess:
+    post:
+      operationId: assessFocusIntention
+      tags: [focus]
+      summary: Score how concrete and actionable an intention is, with suggestions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntentionAssessInput"
+      responses:
+        "200":
+          description: Intention assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntentionAssessment"
+
+  /focus/recommend:
+    post:
+      operationId: recommendFocusBlock
+      tags: [focus]
+      summary: Recommend a work/break block adapted to mode, energy, and chronotype
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendBlockInput"
+      responses:
+        "200":
+          description: Block recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockRecommendation"
+
+  /focus/preferences:
+    get:
+      operationId: getFocusPreferences
+      tags: [focus]
+      summary: Get the current user's Focus Guard configuration (auth required)
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusPreferences"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    put:
+      operationId: updateFocusPreferences
+      tags: [focus]
+      summary: Update the current user's Focus Guard configuration (auth required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusPreferencesInput"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusPreferences"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions:
+    get:
+      operationId: listFocusSessions
+      tags: [focus]
+      summary: List the current user's focus sessions, most recent first (auth required)
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/SessionState"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    post:
+      operationId: startFocusSession
+      tags: [focus]
+      summary: Open a focus session from an intention; returns the active session (auth required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartSessionInput"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}:
+    get:
+      operationId: getFocusSession
+      tags: [focus]
+      summary: Get one session with its event timeline (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Session detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSessionDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}/events:
+    post:
+      operationId: logFocusEvent
+      tags: [focus]
+      summary: Log an event inside a session (distraction, parked thought, milestone) (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusEventInput"
+      responses:
+        "201":
+          description: Logged event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusEvent"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}/complete:
+    post:
+      operationId: completeFocusSession
+      tags: [focus]
+      summary: Close a session; computes the focus score and a reflective debrief (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteSessionInput"
+      responses:
+        "200":
+          description: Session debrief
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSessionDebrief"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/guard/check:
+    post:
+      operationId: checkFocusGuard
+      tags: [focus]
+      summary: Ask the guard whether a context switch should be allowed, warned, or blocked
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuardCheckInput"
+      responses:
+        "200":
+          description: Guard decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardDecision"
+
+  /focus/stats:
+    get:
+      operationId: getFocusStats
+      tags: [focus]
+      summary: Streaks, daily load guidance, and lifetime focus totals (auth required)
+      responses:
+        "200":
+          description: Focus stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusStats"
+        "401":
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -956,3 +1233,504 @@ components:
         - published
         - contributors
         - totalReviews
+
+    # ---- Focus Guard ----
+
+    FocusTechnique:
+      type: string
+      enum: [pomodoro, ultradian, flowtime, deep_work, custom]
+
+    FocusMode:
+      type: string
+      enum: [reading, reviewing, writing, commenting, synthesizing, exploring]
+
+    SessionState:
+      type: string
+      enum: [planned, active, paused, completed, abandoned]
+
+    GuardLevel:
+      type: string
+      enum: [gentle, standard, strict]
+
+    Chronotype:
+      type: string
+      enum: [lark, third_bird, owl]
+
+    IntentionOutcome:
+      type: string
+      enum: [completed, partial, not_met, unset]
+
+    FocusEventKind:
+      type: string
+      enum:
+        - distraction
+        - parked_thought
+        - pause
+        - resume
+        - break_start
+        - break_end
+        - milestone
+        - note
+        - guard_trip
+
+    ScoreTier:
+      type: string
+      enum: [exemplary, strong, solid, developing, scattered]
+
+    TechniquePreset:
+      type: object
+      properties:
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        label:
+          type: string
+        workMinutes:
+          type: integer
+        breakMinutes:
+          type: integer
+        longBreakMinutes:
+          type: integer
+        cyclesBeforeLongBreak:
+          type: integer
+        rationale:
+          type: string
+        basis:
+          type: array
+          items:
+            type: string
+      required:
+        - technique
+        - label
+        - workMinutes
+        - breakMinutes
+        - longBreakMinutes
+        - cyclesBeforeLongBreak
+        - rationale
+        - basis
+
+    IntentionAssessInput:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+
+    IntentionSignals:
+      type: object
+      properties:
+        hasActionVerb:
+          type: boolean
+        hasConcreteObject:
+          type: boolean
+        hasMeasurableTarget:
+          type: boolean
+        hasOutcomeClause:
+          type: boolean
+        isVague:
+          type: boolean
+        wordCount:
+          type: integer
+      required:
+        - hasActionVerb
+        - hasConcreteObject
+        - hasMeasurableTarget
+        - hasOutcomeClause
+        - isVague
+        - wordCount
+
+    IntentionAssessment:
+      type: object
+      properties:
+        score:
+          type: integer
+        tier:
+          $ref: "#/components/schemas/ScoreTier"
+        suggestions:
+          type: array
+          items:
+            type: string
+        signals:
+          $ref: "#/components/schemas/IntentionSignals"
+      required:
+        - score
+        - tier
+        - suggestions
+        - signals
+
+    RecommendBlockInput:
+      type: object
+      properties:
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        mode:
+          $ref: "#/components/schemas/FocusMode"
+        energy:
+          type: integer
+        chronotype:
+          $ref: "#/components/schemas/Chronotype"
+        localHour:
+          type: integer
+      required:
+        - technique
+        - mode
+        - energy
+        - chronotype
+        - localHour
+
+    BlockRecommendation:
+      type: object
+      properties:
+        workMinutes:
+          type: integer
+        breakMinutes:
+          type: integer
+        atPeak:
+          type: boolean
+        guidance:
+          type: string
+      required:
+        - workMinutes
+        - breakMinutes
+        - atPeak
+        - guidance
+
+    FocusPreferences:
+      type: object
+      properties:
+        defaultTechnique:
+          $ref: "#/components/schemas/FocusTechnique"
+        defaultMode:
+          $ref: "#/components/schemas/FocusMode"
+        guardLevel:
+          $ref: "#/components/schemas/GuardLevel"
+        chronotype:
+          $ref: "#/components/schemas/Chronotype"
+        dailyGoalMinutes:
+          type: integer
+        muteNotifications:
+          type: boolean
+      required:
+        - defaultTechnique
+        - defaultMode
+        - guardLevel
+        - chronotype
+        - dailyGoalMinutes
+        - muteNotifications
+
+    FocusPreferencesInput:
+      type: object
+      properties:
+        defaultTechnique:
+          $ref: "#/components/schemas/FocusTechnique"
+        defaultMode:
+          $ref: "#/components/schemas/FocusMode"
+        guardLevel:
+          $ref: "#/components/schemas/GuardLevel"
+        chronotype:
+          $ref: "#/components/schemas/Chronotype"
+        dailyGoalMinutes:
+          type: integer
+        muteNotifications:
+          type: boolean
+      required:
+        - defaultTechnique
+        - defaultMode
+        - guardLevel
+        - chronotype
+        - dailyGoalMinutes
+        - muteNotifications
+
+    StartSessionInput:
+      type: object
+      properties:
+        intention:
+          type: string
+        mode:
+          $ref: "#/components/schemas/FocusMode"
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        plannedMinutes:
+          type: integer
+        targetPaperId:
+          type: ["integer", "null"]
+        energyBefore:
+          type: ["integer", "null"]
+      required:
+        - intention
+        - mode
+        - technique
+        - plannedMinutes
+        - targetPaperId
+        - energyBefore
+
+    FocusSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        intention:
+          type: string
+        intentionScore:
+          type: ["integer", "null"]
+        intentionOutcome:
+          $ref: "#/components/schemas/IntentionOutcome"
+        mode:
+          $ref: "#/components/schemas/FocusMode"
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        targetPaperId:
+          type: ["integer", "null"]
+        plannedMinutes:
+          type: integer
+        focusedMinutes:
+          type: integer
+        state:
+          $ref: "#/components/schemas/SessionState"
+        energyBefore:
+          type: ["integer", "null"]
+        energyAfter:
+          type: ["integer", "null"]
+        flowRating:
+          type: ["integer", "null"]
+        distractionCount:
+          type: integer
+        parkedThoughtCount:
+          type: integer
+        focusScore:
+          type: ["number", "null"]
+        startedAt:
+          type: ["string", "null"]
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - intention
+        - intentionScore
+        - intentionOutcome
+        - mode
+        - technique
+        - targetPaperId
+        - plannedMinutes
+        - focusedMinutes
+        - state
+        - energyBefore
+        - energyAfter
+        - flowRating
+        - distractionCount
+        - parkedThoughtCount
+        - focusScore
+        - startedAt
+        - endedAt
+        - createdAt
+
+    FocusEventInput:
+      type: object
+      properties:
+        kind:
+          $ref: "#/components/schemas/FocusEventKind"
+        note:
+          type: ["string", "null"]
+      required:
+        - kind
+        - note
+
+    FocusEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: integer
+        kind:
+          $ref: "#/components/schemas/FocusEventKind"
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sessionId
+        - kind
+        - note
+        - createdAt
+
+    FocusSessionDetail:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/FocusSession"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/FocusEvent"
+      required:
+        - session
+        - events
+
+    CompleteSessionInput:
+      type: object
+      properties:
+        focusedMinutes:
+          type: integer
+        intentionOutcome:
+          $ref: "#/components/schemas/IntentionOutcome"
+        flowRating:
+          type: ["integer", "null"]
+        energyAfter:
+          type: ["integer", "null"]
+        abandoned:
+          type: boolean
+      required:
+        - focusedMinutes
+        - intentionOutcome
+        - flowRating
+        - energyAfter
+        - abandoned
+
+    FocusScoreComponents:
+      type: object
+      properties:
+        adherence:
+          type: integer
+        depth:
+          type: integer
+        followThrough:
+          type: integer
+      required:
+        - adherence
+        - depth
+        - followThrough
+
+    FocusScore:
+      type: object
+      properties:
+        score:
+          type: integer
+        tier:
+          $ref: "#/components/schemas/ScoreTier"
+        components:
+          $ref: "#/components/schemas/FocusScoreComponents"
+      required:
+        - score
+        - tier
+        - components
+
+    Reflection:
+      type: object
+      properties:
+        headline:
+          type: string
+        observations:
+          type: array
+          items:
+            type: string
+        nextLever:
+          type: string
+      required:
+        - headline
+        - observations
+        - nextLever
+
+    FocusSessionDebrief:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/FocusSession"
+        score:
+          $ref: "#/components/schemas/FocusScore"
+        reflection:
+          $ref: "#/components/schemas/Reflection"
+      required:
+        - session
+        - score
+        - reflection
+
+    GuardCheckInput:
+      type: object
+      properties:
+        level:
+          $ref: "#/components/schemas/GuardLevel"
+        isTargetDestination:
+          type: boolean
+        onBreak:
+          type: boolean
+      required:
+        - level
+        - isTargetDestination
+        - onBreak
+
+    GuardDecision:
+      type: object
+      properties:
+        verdict:
+          type: string
+          enum: [allow, warn, block]
+        message:
+          type: string
+      required:
+        - verdict
+        - message
+
+    FocusStreak:
+      type: object
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        atRisk:
+          type: boolean
+        graceUsed:
+          type: boolean
+      required:
+        - currentStreak
+        - longestStreak
+        - atRisk
+        - graceUsed
+
+    DailyLoadAdvice:
+      type: object
+      properties:
+        recommendedCeilingMinutes:
+          type: integer
+        overCeiling:
+          type: boolean
+        message:
+          type: string
+      required:
+        - recommendedCeilingMinutes
+        - overCeiling
+        - message
+
+    FocusStats:
+      type: object
+      properties:
+        streak:
+          $ref: "#/components/schemas/FocusStreak"
+        today:
+          $ref: "#/components/schemas/DailyLoadAdvice"
+        focusedMinutesToday:
+          type: integer
+        totalSessions:
+          type: integer
+        completedSessions:
+          type: integer
+        lifetimeFocusedMinutes:
+          type: integer
+        averageFocusScore:
+          type: ["number", "null"]
+      required:
+        - streak
+        - today
+        - focusedMinutesToday
+        - totalSessions
+        - completedSessions
+        - lifetimeFocusedMinutes
+        - averageFocusScore

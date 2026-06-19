@@ -25,3 +25,10 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Focus Guard
+
+A psychology-grounded deep-work feature lives in `@workspace/focus-engine` (pure
+logic + tests), the `focus_*` Drizzle tables, and the `/focus/*` API. Before
+working on it, read and then update `docs/focus-guard/ROUTINE_CHECK.md` — the
+living design log and routine-to-routine handoff.

@@ -5,6 +5,7 @@ import reviewsRouter from "./reviews";
 import commentsRouter from "./comments";
 import feedRouter from "./feed";
 import usersRouter from "./users";
+import focusRouter from "./focus";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(reviewsRouter);
 router.use(commentsRouter);
 router.use(feedRouter);
 router.use(usersRouter);
+router.use(focusRouter);
 
 export default router;

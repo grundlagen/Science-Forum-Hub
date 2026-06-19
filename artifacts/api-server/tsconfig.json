@@ -11,6 +11,9 @@
       "path": "../../lib/db"
     },
     {
+      "path": "../../lib/focus-engine"
+    },
+    {
       "path": "../../lib/api-zod"
     },
     {
