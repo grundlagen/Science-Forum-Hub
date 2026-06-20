@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   integer,
+  doublePrecision,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -17,6 +18,12 @@ export const reviewsTable = pgTable(
     authorId: text("author_id").notNull(),
     stance: text("stance").$type<ReviewStance>().notNull(),
     justification: text("justification").notNull(),
+    /**
+     * Focus Guard quality (0..100) of the reading session that produced this
+     * review, if one existed. Lets the platform weight judgements by the
+     * attention that backed them rather than treating all votes as equal.
+     */
+    focusScore: doublePrecision("focus_score"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },

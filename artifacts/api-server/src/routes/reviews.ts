@@ -9,6 +9,7 @@ import {
 import { requireAuth, type AuthedRequest } from "../lib/auth";
 import { getOrCreateProfile, getProfilesByIds, profileToPublic } from "../lib/profiles";
 import { recomputeStage } from "../lib/paperHelpers";
+import { getGuardState, noteReviewCast } from "../lib/focusGuardService";
 
 const router: IRouter = Router();
 
@@ -59,6 +60,17 @@ router.post("/papers/:id/reviews", requireAuth, async (req, res): Promise<void> 
   }
   await getOrCreateProfile(userId);
 
+  // Focus Guard: weigh (and, when the user has opted in, gate) this judgement by
+  // the attention that backed it.
+  const guard = await getGuardState(userId, params.data.id);
+  if (guard.eligibility.blocking) {
+    res.status(409).json({
+      error: guard.eligibility.message,
+      focusGuard: { eligibility: guard.eligibility, fatigue: guard.fatigue },
+    });
+    return;
+  }
+
   const [existing] = await db
     .select()
     .from(reviewsTable)
@@ -68,7 +80,11 @@ router.post("/papers/:id/reviews", requireAuth, async (req, res): Promise<void> 
   if (existing) {
     [row] = await db
       .update(reviewsTable)
-      .set({ stance: parsed.data.stance, justification: parsed.data.justification })
+      .set({
+        stance: parsed.data.stance,
+        justification: parsed.data.justification,
+        focusScore: guard.focusScore,
+      })
       .where(eq(reviewsTable.id, existing.id))
       .returning();
   } else {
@@ -79,8 +95,11 @@ router.post("/papers/:id/reviews", requireAuth, async (req, res): Promise<void> 
         authorId: userId,
         stance: parsed.data.stance,
         justification: parsed.data.justification,
+        focusScore: guard.focusScore,
       })
       .returning();
+    // Only a *new* review advances the decision-fatigue counter; edits don't.
+    await noteReviewCast(userId);
   }
 
   await recomputeStage(params.data.id);
@@ -91,7 +110,10 @@ router.post("/papers/:id/reviews", requireAuth, async (req, res): Promise<void> 
     author: profileToPublic(author),
     stance: row.stance,
     justification: row.justification,
+    focusScore: row.focusScore,
     createdAt: row.createdAt,
+    // Advisory even when not blocking, so the UI can reflect on the judgement.
+    focusGuard: { eligibility: guard.eligibility, fatigue: guard.fatigue },
   });
 });
 

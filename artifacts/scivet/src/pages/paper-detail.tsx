@@ -22,6 +22,8 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { useFocusGuard } from "@/hooks/use-focus-guard";
+import { FocusGuardPanel } from "@/components/focus-guard";
 
 export default function PaperDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +40,10 @@ export default function PaperDetail() {
   const [commentBody, setCommentBody] = useState("");
   const [reviewJustification, setReviewJustification] = useState("");
   const [reviewStance, setReviewStance] = useState<"endorse" | "challenge" | "reject" | null>(null);
+
+  // Focus Guard: track attention on this paper so reviews are weighed (and,
+  // if the reader opted into enforcement, gated) by genuine engagement.
+  const focus = useFocusGuard(paperId, "review", !!paperId && !Number.isNaN(paperId));
 
   if (isLoading || !detail) {
     return (
@@ -77,8 +83,17 @@ export default function PaperDetail() {
           setReviewStance(null);
           setReviewJustification("");
           queryClient.invalidateQueries({ queryKey: getGetPaperQueryKey(paperId) });
+          focus.refresh();
           toast.success("Review cast successfully");
-        }
+        },
+        onError: () => {
+          // Focus Guard enforcement (409) or other failure.
+          focus.refresh();
+          toast.error(
+            focus.guard?.eligibility.message ??
+              "Couldn't cast review. Spend a little more focused time with the paper first.",
+          );
+        },
       }
     );
   };
@@ -344,6 +359,12 @@ export default function PaperDetail() {
               <SignedIn>
                 {!isAuthor && (
                   <div className="space-y-4">
+                    <FocusGuardPanel
+                      guard={focus.guard}
+                      engagedSec={focus.engagedSec}
+                      scrollDepth={focus.scrollDepth}
+                      onTakeBreak={focus.takeBreak}
+                    />
                     <div className="grid grid-cols-3 gap-2">
                       <Button 
                         variant={reviewStance === "endorse" ? "default" : "outline"} 
@@ -378,13 +399,22 @@ export default function PaperDetail() {
                           onChange={e => setReviewJustification(e.target.value)}
                           className="mb-2 text-sm h-24"
                         />
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           onClick={handleReview}
-                          disabled={castReview.isPending || !reviewJustification.trim()}
+                          disabled={
+                            castReview.isPending ||
+                            !reviewJustification.trim() ||
+                            (focus.guard?.eligibility.blocking ?? false)
+                          }
                         >
-                          Submit Review
+                          {focus.guard?.eligibility.blocking ? "Keep reading to review" : "Submit Review"}
                         </Button>
+                        {focus.guard?.eligibility.blocking && (
+                          <p className="mt-2 text-xs text-amber-500">
+                            {focus.guard.eligibility.message}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
