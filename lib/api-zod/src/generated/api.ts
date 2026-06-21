@@ -539,3 +539,397 @@ export const GetUserProfileResponse = zod.object({
     commentsPosted: zod.number(),
   }),
 });
+
+/**
+ * @summary Focus Guard home — profile, today's stats, next-session recommendation, and any active session (auth required)
+ */
+export const GetFocusDashboardResponse = zod.object({
+  profile: zod.object({
+    userId: zod.string(),
+    preferredSessionMinutes: zod.number(),
+    preferredBreakMinutes: zod.number(),
+    dailyGoalMinutes: zod.number(),
+    chronotype: zod.enum(["lark", "owl", "neutral"]),
+    blindPassEnabled: zod.boolean(),
+    steelmanGuardEnabled: zod.boolean(),
+    depletionGuardEnabled: zod.boolean(),
+    gentleMode: zod.boolean(),
+    currentStreakDays: zod.number(),
+    longestStreakDays: zod.number(),
+    graceTokens: zod.number(),
+    lastSessionDate: zod.string().nullable(),
+    totalFocusMinutes: zod.number(),
+    sessionsCompleted: zod.number(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+  today: zod.object({
+    date: zod.string(),
+    focusMinutes: zod.number(),
+    sessionsCompleted: zod.number(),
+    goalMinutes: zod.number(),
+    goalMet: zod.boolean(),
+    averageFocusScore: zod.number().nullable(),
+  }),
+  recommendation: zod.object({
+    recommendedMinutes: zod.number(),
+    takeBreakFirst: zod.boolean(),
+    reasons: zod.array(zod.string()),
+    encouragement: zod.string(),
+  }),
+  activeSession: zod.union([
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      paperId: zod.number().nullable(),
+      mode: zod.enum(["review", "read", "write", "triage"]),
+      intent: zod.string(),
+      plannedMinutes: zod.number(),
+      status: zod.enum(["active", "completed", "abandoned"]),
+      depletionBefore: zod.number().nullable(),
+      depletionAfter: zod.number().nullable(),
+      flowRating: zod.number().nullable(),
+      focusScore: zod.number().nullable(),
+      actualFocusSeconds: zod.number(),
+      interruptionCount: zod.number(),
+      startedAt: zod.coerce.date(),
+      endedAt: zod.coerce.date().nullable(),
+      reflection: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    zod.null(),
+  ]),
+  recentSessions: zod.array(
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      paperId: zod.number().nullable(),
+      mode: zod.enum(["review", "read", "write", "triage"]),
+      intent: zod.string(),
+      plannedMinutes: zod.number(),
+      status: zod.enum(["active", "completed", "abandoned"]),
+      depletionBefore: zod.number().nullable(),
+      depletionAfter: zod.number().nullable(),
+      flowRating: zod.number().nullable(),
+      focusScore: zod.number().nullable(),
+      actualFocusSeconds: zod.number(),
+      interruptionCount: zod.number(),
+      startedAt: zod.coerce.date(),
+      endedAt: zod.coerce.date().nullable(),
+      reflection: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get my Focus Guard settings and state (auth required)
+ */
+export const GetFocusProfileResponse = zod.object({
+  userId: zod.string(),
+  preferredSessionMinutes: zod.number(),
+  preferredBreakMinutes: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  chronotype: zod.enum(["lark", "owl", "neutral"]),
+  blindPassEnabled: zod.boolean(),
+  steelmanGuardEnabled: zod.boolean(),
+  depletionGuardEnabled: zod.boolean(),
+  gentleMode: zod.boolean(),
+  currentStreakDays: zod.number(),
+  longestStreakDays: zod.number(),
+  graceTokens: zod.number(),
+  lastSessionDate: zod.string().nullable(),
+  totalFocusMinutes: zod.number(),
+  sessionsCompleted: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update my Focus Guard settings (auth required)
+ */
+export const updateFocusProfileBodyPreferredSessionMinutesMin = 15;
+export const updateFocusProfileBodyPreferredSessionMinutesMax = 90;
+
+export const updateFocusProfileBodyPreferredBreakMinutesMin = 0;
+export const updateFocusProfileBodyPreferredBreakMinutesMax = 60;
+
+export const updateFocusProfileBodyDailyGoalMinutesMin = 0;
+export const updateFocusProfileBodyDailyGoalMinutesMax = 600;
+
+export const UpdateFocusProfileBody = zod.object({
+  preferredSessionMinutes: zod
+    .number()
+    .min(updateFocusProfileBodyPreferredSessionMinutesMin)
+    .max(updateFocusProfileBodyPreferredSessionMinutesMax)
+    .optional(),
+  preferredBreakMinutes: zod
+    .number()
+    .min(updateFocusProfileBodyPreferredBreakMinutesMin)
+    .max(updateFocusProfileBodyPreferredBreakMinutesMax)
+    .optional(),
+  dailyGoalMinutes: zod
+    .number()
+    .min(updateFocusProfileBodyDailyGoalMinutesMin)
+    .max(updateFocusProfileBodyDailyGoalMinutesMax)
+    .optional(),
+  chronotype: zod.enum(["lark", "owl", "neutral"]).optional(),
+  blindPassEnabled: zod.boolean().optional(),
+  steelmanGuardEnabled: zod.boolean().optional(),
+  depletionGuardEnabled: zod.boolean().optional(),
+  gentleMode: zod.boolean().optional(),
+});
+
+export const UpdateFocusProfileResponse = zod.object({
+  userId: zod.string(),
+  preferredSessionMinutes: zod.number(),
+  preferredBreakMinutes: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  chronotype: zod.enum(["lark", "owl", "neutral"]),
+  blindPassEnabled: zod.boolean(),
+  steelmanGuardEnabled: zod.boolean(),
+  depletionGuardEnabled: zod.boolean(),
+  gentleMode: zod.boolean(),
+  currentStreakDays: zod.number(),
+  longestStreakDays: zod.number(),
+  graceTokens: zod.number(),
+  lastSessionDate: zod.string().nullable(),
+  totalFocusMinutes: zod.number(),
+  sessionsCompleted: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary My recent focus sessions, newest first (auth required)
+ */
+export const ListFocusSessionsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListFocusSessionsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  paperId: zod.number().nullable(),
+  mode: zod.enum(["review", "read", "write", "triage"]),
+  intent: zod.string(),
+  plannedMinutes: zod.number(),
+  status: zod.enum(["active", "completed", "abandoned"]),
+  depletionBefore: zod.number().nullable(),
+  depletionAfter: zod.number().nullable(),
+  flowRating: zod.number().nullable(),
+  focusScore: zod.number().nullable(),
+  actualFocusSeconds: zod.number(),
+  interruptionCount: zod.number(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListFocusSessionsResponse = zod.array(
+  ListFocusSessionsResponseItem,
+);
+
+/**
+ * @summary Start a deep-work session with a declared intention (auth required)
+ */
+export const startFocusSessionBodyIntentMin = 3;
+export const startFocusSessionBodyIntentMax = 280;
+
+export const startFocusSessionBodyPlannedMinutesMin = 15;
+export const startFocusSessionBodyPlannedMinutesMax = 90;
+
+export const startFocusSessionBodyDepletionBeforeMax = 5;
+
+export const StartFocusSessionBody = zod.object({
+  intent: zod
+    .string()
+    .min(startFocusSessionBodyIntentMin)
+    .max(startFocusSessionBodyIntentMax),
+  mode: zod.enum(["review", "read", "write", "triage"]).optional(),
+  paperId: zod.number().nullish(),
+  plannedMinutes: zod
+    .number()
+    .min(startFocusSessionBodyPlannedMinutesMin)
+    .max(startFocusSessionBodyPlannedMinutesMax)
+    .optional(),
+  depletionBefore: zod
+    .number()
+    .min(1)
+    .max(startFocusSessionBodyDepletionBeforeMax)
+    .nullish(),
+});
+
+/**
+ * @summary A single focus session with its event log (auth required)
+ */
+export const GetFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetFocusSessionResponse = zod.object({
+  session: zod.object({
+    id: zod.number(),
+    userId: zod.string(),
+    paperId: zod.number().nullable(),
+    mode: zod.enum(["review", "read", "write", "triage"]),
+    intent: zod.string(),
+    plannedMinutes: zod.number(),
+    status: zod.enum(["active", "completed", "abandoned"]),
+    depletionBefore: zod.number().nullable(),
+    depletionAfter: zod.number().nullable(),
+    flowRating: zod.number().nullable(),
+    focusScore: zod.number().nullable(),
+    actualFocusSeconds: zod.number(),
+    interruptionCount: zod.number(),
+    startedAt: zod.coerce.date(),
+    endedAt: zod.coerce.date().nullable(),
+    reflection: zod.string().nullable(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+  events: zod.array(
+    zod.object({
+      id: zod.number(),
+      sessionId: zod.number(),
+      userId: zod.string(),
+      type: zod.enum([
+        "interruption",
+        "parked_thought",
+        "break_start",
+        "break_end",
+        "guard_shown",
+        "guard_acknowledged",
+      ]),
+      note: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Log an interruption, parked thought, or break during a session (auth required)
+ */
+export const LogFocusEventParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const logFocusEventBodyNoteMax = 500;
+
+export const LogFocusEventBody = zod.object({
+  type: zod.enum([
+    "interruption",
+    "parked_thought",
+    "break_start",
+    "break_end",
+    "guard_shown",
+    "guard_acknowledged",
+  ]),
+  note: zod.string().max(logFocusEventBodyNoteMax).nullish(),
+});
+
+/**
+ * @summary Complete a session and record reflection metrics (auth required)
+ */
+export const CompleteFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const completeFocusSessionBodyActualFocusSecondsMin = 0;
+
+export const completeFocusSessionBodyFlowRatingMax = 5;
+
+export const completeFocusSessionBodyDepletionAfterMax = 5;
+
+export const completeFocusSessionBodyReflectionMax = 2000;
+
+export const CompleteFocusSessionBody = zod.object({
+  actualFocusSeconds: zod
+    .number()
+    .min(completeFocusSessionBodyActualFocusSecondsMin),
+  flowRating: zod
+    .number()
+    .min(1)
+    .max(completeFocusSessionBodyFlowRatingMax)
+    .nullish(),
+  depletionAfter: zod
+    .number()
+    .min(1)
+    .max(completeFocusSessionBodyDepletionAfterMax)
+    .nullish(),
+  reflection: zod.string().max(completeFocusSessionBodyReflectionMax).nullish(),
+});
+
+export const CompleteFocusSessionResponse = zod.object({
+  session: zod.object({
+    id: zod.number(),
+    userId: zod.string(),
+    paperId: zod.number().nullable(),
+    mode: zod.enum(["review", "read", "write", "triage"]),
+    intent: zod.string(),
+    plannedMinutes: zod.number(),
+    status: zod.enum(["active", "completed", "abandoned"]),
+    depletionBefore: zod.number().nullable(),
+    depletionAfter: zod.number().nullable(),
+    flowRating: zod.number().nullable(),
+    focusScore: zod.number().nullable(),
+    actualFocusSeconds: zod.number(),
+    interruptionCount: zod.number(),
+    startedAt: zod.coerce.date(),
+    endedAt: zod.coerce.date().nullable(),
+    reflection: zod.string().nullable(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+  reflection: zod.string(),
+  streakDays: zod.number(),
+  goalMet: zod.boolean(),
+});
+
+/**
+ * @summary Abandon an active session without penalty (auth required)
+ */
+export const AbandonFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AbandonFocusSessionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  paperId: zod.number().nullable(),
+  mode: zod.enum(["review", "read", "write", "triage"]),
+  intent: zod.string(),
+  plannedMinutes: zod.number(),
+  status: zod.enum(["active", "completed", "abandoned"]),
+  depletionBefore: zod.number().nullable(),
+  depletionAfter: zod.number().nullable(),
+  flowRating: zod.number().nullable(),
+  focusScore: zod.number().nullable(),
+  actualFocusSeconds: zod.number(),
+  interruptionCount: zod.number(),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Cognitive-bias check run before casting a review verdict (auth required)
+ */
+export const GetReviewReadinessQueryParams = zod.object({
+  stance: zod.enum(["endorse", "challenge", "reject"]),
+  paperId: zod.coerce.number().optional(),
+  blindPassDone: zod.coerce.boolean().optional(),
+});
+
+export const GetReviewReadinessResponse = zod.object({
+  level: zod.enum(["ok", "caution", "pause"]),
+  ok: zod.boolean(),
+  warnings: zod.array(zod.string()),
+  suggestions: zod.array(zod.string()),
+  steelmanPrompt: zod.string().nullable(),
+});

@@ -5,6 +5,7 @@ import {
   useListPaperComments, 
   useCreatePaperComment, 
   useCastPaperReview,
+  useGetReviewReadiness,
   getGetPaperQueryKey,
   getListPaperCommentsQueryKey,
   PaperStage
@@ -15,7 +16,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
-import { BrainCircuit, CheckCircle2, AlertCircle, XCircle, ChevronRight, PenTool } from "lucide-react";
+import { BrainCircuit, CheckCircle2, AlertCircle, XCircle, ChevronRight, PenTool, ShieldCheck, ShieldAlert, Lightbulb } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useUser } from "@clerk/react";
 import { SignedIn, SignedOut } from "@/lib/clerk-compat";
 import { useState } from "react";
@@ -38,6 +47,17 @@ export default function PaperDetail() {
   const [commentBody, setCommentBody] = useState("");
   const [reviewJustification, setReviewJustification] = useState("");
   const [reviewStance, setReviewStance] = useState<"endorse" | "challenge" | "reject" | null>(null);
+  // Focus Guard: cognitive bias check before a verdict is cast.
+  const [guardOpen, setGuardOpen] = useState(false);
+  const [steelman, setSteelman] = useState("");
+
+  // Form a private verdict before reading others — track whether they've peeked.
+  const [blindPassDone, setBlindPassDone] = useState(false);
+
+  const { data: readiness, isLoading: readinessLoading } = useGetReviewReadiness(
+    { stance: reviewStance ?? "endorse", paperId, blindPassDone },
+    { query: { enabled: guardOpen && !!reviewStance } },
+  );
 
   if (isLoading || !detail) {
     return (
@@ -68,14 +88,31 @@ export default function PaperDetail() {
     );
   };
 
+  // Step 1: don't cast immediately — open the Focus Guard for a deliberate pause.
   const handleReview = () => {
     if (!reviewStance || !reviewJustification.trim()) return;
+    setSteelman("");
+    setGuardOpen(true);
+  };
+
+  const needsSteelman = !!readiness?.steelmanPrompt;
+  const canConfirm = !readinessLoading && (!needsSteelman || steelman.trim().length > 0);
+
+  // Step 2: cast for real, preserving the steelman reasoning in the justification.
+  const castReviewNow = () => {
+    if (!reviewStance || !reviewJustification.trim()) return;
+    const justification = needsSteelman && steelman.trim()
+      ? `${reviewJustification.trim()}\n\nSteelman (strongest opposing case): ${steelman.trim()}`
+      : reviewJustification.trim();
     castReview.mutate(
-      { id: paperId, data: { stance: reviewStance, justification: reviewJustification } },
+      { id: paperId, data: { stance: reviewStance, justification } },
       {
         onSuccess: () => {
+          setGuardOpen(false);
           setReviewStance(null);
           setReviewJustification("");
+          setSteelman("");
+          setBlindPassDone(true);
           queryClient.invalidateQueries({ queryKey: getGetPaperQueryKey(paperId) });
           toast.success("Review cast successfully");
         }
@@ -378,17 +415,96 @@ export default function PaperDetail() {
                           onChange={e => setReviewJustification(e.target.value)}
                           className="mb-2 text-sm h-24"
                         />
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           onClick={handleReview}
                           disabled={castReview.isPending || !reviewJustification.trim()}
                         >
-                          Submit Review
+                          Review verdict
                         </Button>
                       </div>
                     )}
                   </div>
                 )}
+
+                {/* Focus Guard — a deliberate pause before a verdict lands. */}
+                <Dialog open={guardOpen} onOpenChange={setGuardOpen}>
+                  <DialogContent className="max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        {readiness && !readiness.ok ? (
+                          <ShieldAlert className="h-5 w-5 text-amber-500" />
+                        ) : (
+                          <ShieldCheck className="h-5 w-5 text-primary" />
+                        )}
+                        Before you cast a{" "}
+                        <span className="capitalize">{reviewStance}</span>
+                      </DialogTitle>
+                      <DialogDescription>
+                        A short, honest check. Focus Guard never blocks you — it just
+                        makes the biases in peer review visible.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2 text-sm">
+                      {readinessLoading && (
+                        <p className="text-muted-foreground">Checking…</p>
+                      )}
+
+                      {readiness?.warnings.map((w, i) => (
+                        <div
+                          key={`w-${i}`}
+                          className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900"
+                        >
+                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                          <span>{w}</span>
+                        </div>
+                      ))}
+
+                      {readiness?.suggestions.map((s, i) => (
+                        <div key={`s-${i}`} className="flex gap-2 text-muted-foreground">
+                          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" />
+                          <span>{s}</span>
+                        </div>
+                      ))}
+
+                      {readiness?.steelmanPrompt && (
+                        <div className="space-y-2">
+                          <p className="font-medium text-foreground">
+                            {readiness.steelmanPrompt}
+                          </p>
+                          <Textarea
+                            placeholder="The strongest case for the other side…"
+                            value={steelman}
+                            onChange={(e) => setSteelman(e.target.value)}
+                            className="h-24 text-sm"
+                          />
+                        </div>
+                      )}
+
+                      {readiness && readiness.ok && readiness.warnings.length === 0 &&
+                        readiness.suggestions.length === 0 && !readiness.steelmanPrompt && (
+                          <div className="flex gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-foreground/80">
+                            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                            <span>No flags. You've done the work — cast with confidence.</span>
+                          </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button variant="ghost" onClick={() => setGuardOpen(false)}>
+                        Keep thinking
+                      </Button>
+                      <Button
+                        onClick={castReviewNow}
+                        disabled={castReview.isPending || !canConfirm}
+                        className={readiness && !readiness.ok ? "bg-amber-600 hover:bg-amber-700" : ""}
+                      >
+                        {readiness && !readiness.ok ? "Cast anyway" : "Cast verdict"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
                 {isAuthor && (
                   <p className="text-sm text-center text-muted-foreground italic">Authors cannot review their own papers.</p>
                 )}

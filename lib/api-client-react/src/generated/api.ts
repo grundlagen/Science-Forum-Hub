@@ -22,7 +22,19 @@ import type {
   CommentCreateInput,
   FeedStats,
   FieldTag,
+  FocusDashboard,
+  FocusEvent,
+  FocusEventCreateInput,
+  FocusProfile,
+  FocusProfileUpdateInput,
+  FocusSession,
+  FocusSessionCompleteInput,
+  FocusSessionCreateInput,
+  FocusSessionDetail,
+  FocusSessionSummary,
+  GetReviewReadinessParams,
   HealthStatus,
+  ListFocusSessionsParams,
   ListPapersParams,
   MeResponse,
   Paper,
@@ -33,6 +45,7 @@ import type {
   PaperUpdateInput,
   Review,
   ReviewCastInput,
+  ReviewReadiness,
   UserProfile,
 } from "./api.schemas";
 
@@ -1508,6 +1521,868 @@ export function useGetUserProfile<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetUserProfileQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Focus Guard home — profile, today's stats, next-session recommendation, and any active session (auth required)
+ */
+export const getGetFocusDashboardUrl = () => {
+  return `/api/focus/dashboard`;
+};
+
+export const getFocusDashboard = async (
+  options?: RequestInit,
+): Promise<FocusDashboard> => {
+  return customFetch<FocusDashboard>(getGetFocusDashboardUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFocusDashboardQueryKey = () => {
+  return [`/api/focus/dashboard`] as const;
+};
+
+export const getGetFocusDashboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFocusDashboard>>,
+  TError = ErrorType<ApiErrorBody>,
+>(options?: {
+  query?: Partial<UseQueryOptions<
+    Awaited<ReturnType<typeof getFocusDashboard>>,
+    TError,
+    TData
+  >>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFocusDashboardQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFocusDashboard>>
+  > = ({ signal }) => getFocusDashboard({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFocusDashboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFocusDashboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFocusDashboard>>
+>;
+export type GetFocusDashboardQueryError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Focus Guard home — profile, today's stats, next-session recommendation, and any active session (auth required)
+ */
+
+export function useGetFocusDashboard<
+  TData = Awaited<ReturnType<typeof getFocusDashboard>>,
+  TError = ErrorType<ApiErrorBody>,
+>(options?: {
+  query?: Partial<UseQueryOptions<
+    Awaited<ReturnType<typeof getFocusDashboard>>,
+    TError,
+    TData
+  >>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFocusDashboardQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get my Focus Guard settings and state (auth required)
+ */
+export const getGetFocusProfileUrl = () => {
+  return `/api/focus/profile`;
+};
+
+export const getFocusProfile = async (
+  options?: RequestInit,
+): Promise<FocusProfile> => {
+  return customFetch<FocusProfile>(getGetFocusProfileUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFocusProfileQueryKey = () => {
+  return [`/api/focus/profile`] as const;
+};
+
+export const getGetFocusProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFocusProfile>>,
+  TError = ErrorType<ApiErrorBody>,
+>(options?: {
+  query?: Partial<UseQueryOptions<
+    Awaited<ReturnType<typeof getFocusProfile>>,
+    TError,
+    TData
+  >>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFocusProfileQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getFocusProfile>>> = ({
+    signal,
+  }) => getFocusProfile({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFocusProfile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFocusProfileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFocusProfile>>
+>;
+export type GetFocusProfileQueryError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Get my Focus Guard settings and state (auth required)
+ */
+
+export function useGetFocusProfile<
+  TData = Awaited<ReturnType<typeof getFocusProfile>>,
+  TError = ErrorType<ApiErrorBody>,
+>(options?: {
+  query?: Partial<UseQueryOptions<
+    Awaited<ReturnType<typeof getFocusProfile>>,
+    TError,
+    TData
+  >>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFocusProfileQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update my Focus Guard settings (auth required)
+ */
+export const getUpdateFocusProfileUrl = () => {
+  return `/api/focus/profile`;
+};
+
+export const updateFocusProfile = async (
+  focusProfileUpdateInput: FocusProfileUpdateInput,
+  options?: RequestInit,
+): Promise<FocusProfile> => {
+  return customFetch<FocusProfile>(getUpdateFocusProfileUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(focusProfileUpdateInput),
+  });
+};
+
+export const getUpdateFocusProfileMutationOptions = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFocusProfile>>,
+    TError,
+    { data: BodyType<FocusProfileUpdateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFocusProfile>>,
+  TError,
+  { data: BodyType<FocusProfileUpdateInput> },
+  TContext
+> => {
+  const mutationKey = ["updateFocusProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFocusProfile>>,
+    { data: BodyType<FocusProfileUpdateInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateFocusProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateFocusProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFocusProfile>>
+>;
+export type UpdateFocusProfileMutationBody = BodyType<FocusProfileUpdateInput>;
+export type UpdateFocusProfileMutationError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Update my Focus Guard settings (auth required)
+ */
+export const useUpdateFocusProfile = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFocusProfile>>,
+    TError,
+    { data: BodyType<FocusProfileUpdateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateFocusProfile>>,
+  TError,
+  { data: BodyType<FocusProfileUpdateInput> },
+  TContext
+> => {
+  return useMutation(getUpdateFocusProfileMutationOptions(options));
+};
+
+/**
+ * @summary My recent focus sessions, newest first (auth required)
+ */
+export const getListFocusSessionsUrl = (params?: ListFocusSessionsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/focus/sessions?${stringifiedParams}`
+    : `/api/focus/sessions`;
+};
+
+export const listFocusSessions = async (
+  params?: ListFocusSessionsParams,
+  options?: RequestInit,
+): Promise<FocusSession[]> => {
+  return customFetch<FocusSession[]>(getListFocusSessionsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFocusSessionsQueryKey = (
+  params?: ListFocusSessionsParams,
+) => {
+  return [`/api/focus/sessions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListFocusSessionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFocusSessions>>,
+  TError = ErrorType<ApiErrorBody>,
+>(
+  params?: ListFocusSessionsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<
+      Awaited<ReturnType<typeof listFocusSessions>>,
+      TError,
+      TData
+    >>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListFocusSessionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFocusSessions>>
+  > = ({ signal }) => listFocusSessions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFocusSessions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFocusSessionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFocusSessions>>
+>;
+export type ListFocusSessionsQueryError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary My recent focus sessions, newest first (auth required)
+ */
+
+export function useListFocusSessions<
+  TData = Awaited<ReturnType<typeof listFocusSessions>>,
+  TError = ErrorType<ApiErrorBody>,
+>(
+  params?: ListFocusSessionsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<
+      Awaited<ReturnType<typeof listFocusSessions>>,
+      TError,
+      TData
+    >>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFocusSessionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Start a deep-work session with a declared intention (auth required)
+ */
+export const getStartFocusSessionUrl = () => {
+  return `/api/focus/sessions`;
+};
+
+export const startFocusSession = async (
+  focusSessionCreateInput: FocusSessionCreateInput,
+  options?: RequestInit,
+): Promise<FocusSession> => {
+  return customFetch<FocusSession>(getStartFocusSessionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(focusSessionCreateInput),
+  });
+};
+
+export const getStartFocusSessionMutationOptions = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startFocusSession>>,
+    TError,
+    { data: BodyType<FocusSessionCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startFocusSession>>,
+  TError,
+  { data: BodyType<FocusSessionCreateInput> },
+  TContext
+> => {
+  const mutationKey = ["startFocusSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startFocusSession>>,
+    { data: BodyType<FocusSessionCreateInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return startFocusSession(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartFocusSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startFocusSession>>
+>;
+export type StartFocusSessionMutationBody = BodyType<FocusSessionCreateInput>;
+export type StartFocusSessionMutationError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Start a deep-work session with a declared intention (auth required)
+ */
+export const useStartFocusSession = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startFocusSession>>,
+    TError,
+    { data: BodyType<FocusSessionCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startFocusSession>>,
+  TError,
+  { data: BodyType<FocusSessionCreateInput> },
+  TContext
+> => {
+  return useMutation(getStartFocusSessionMutationOptions(options));
+};
+
+/**
+ * @summary A single focus session with its event log (auth required)
+ */
+export const getGetFocusSessionUrl = (id: number) => {
+  return `/api/focus/sessions/${id}`;
+};
+
+export const getFocusSession = async (
+  id: number,
+  options?: RequestInit,
+): Promise<FocusSessionDetail> => {
+  return customFetch<FocusSessionDetail>(getGetFocusSessionUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFocusSessionQueryKey = (id: number) => {
+  return [`/api/focus/sessions/${id}`] as const;
+};
+
+export const getGetFocusSessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFocusSession>>,
+  TError = ErrorType<ApiErrorBody>,
+>(
+  id: number,
+  options?: {
+    query?: Partial<UseQueryOptions<
+      Awaited<ReturnType<typeof getFocusSession>>,
+      TError,
+      TData
+    >>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFocusSessionQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getFocusSession>>> = ({
+    signal,
+  }) => getFocusSession(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFocusSession>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFocusSessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFocusSession>>
+>;
+export type GetFocusSessionQueryError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary A single focus session with its event log (auth required)
+ */
+
+export function useGetFocusSession<
+  TData = Awaited<ReturnType<typeof getFocusSession>>,
+  TError = ErrorType<ApiErrorBody>,
+>(
+  id: number,
+  options?: {
+    query?: Partial<UseQueryOptions<
+      Awaited<ReturnType<typeof getFocusSession>>,
+      TError,
+      TData
+    >>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFocusSessionQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Log an interruption, parked thought, or break during a session (auth required)
+ */
+export const getLogFocusEventUrl = (id: number) => {
+  return `/api/focus/sessions/${id}/events`;
+};
+
+export const logFocusEvent = async (
+  id: number,
+  focusEventCreateInput: FocusEventCreateInput,
+  options?: RequestInit,
+): Promise<FocusEvent> => {
+  return customFetch<FocusEvent>(getLogFocusEventUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(focusEventCreateInput),
+  });
+};
+
+export const getLogFocusEventMutationOptions = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logFocusEvent>>,
+    TError,
+    { id: number; data: BodyType<FocusEventCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof logFocusEvent>>,
+  TError,
+  { id: number; data: BodyType<FocusEventCreateInput> },
+  TContext
+> => {
+  const mutationKey = ["logFocusEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof logFocusEvent>>,
+    { id: number; data: BodyType<FocusEventCreateInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return logFocusEvent(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LogFocusEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof logFocusEvent>>
+>;
+export type LogFocusEventMutationBody = BodyType<FocusEventCreateInput>;
+export type LogFocusEventMutationError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Log an interruption, parked thought, or break during a session (auth required)
+ */
+export const useLogFocusEvent = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logFocusEvent>>,
+    TError,
+    { id: number; data: BodyType<FocusEventCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof logFocusEvent>>,
+  TError,
+  { id: number; data: BodyType<FocusEventCreateInput> },
+  TContext
+> => {
+  return useMutation(getLogFocusEventMutationOptions(options));
+};
+
+/**
+ * @summary Complete a session and record reflection metrics (auth required)
+ */
+export const getCompleteFocusSessionUrl = (id: number) => {
+  return `/api/focus/sessions/${id}/complete`;
+};
+
+export const completeFocusSession = async (
+  id: number,
+  focusSessionCompleteInput: FocusSessionCompleteInput,
+  options?: RequestInit,
+): Promise<FocusSessionSummary> => {
+  return customFetch<FocusSessionSummary>(getCompleteFocusSessionUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(focusSessionCompleteInput),
+  });
+};
+
+export const getCompleteFocusSessionMutationOptions = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeFocusSession>>,
+    TError,
+    { id: number; data: BodyType<FocusSessionCompleteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof completeFocusSession>>,
+  TError,
+  { id: number; data: BodyType<FocusSessionCompleteInput> },
+  TContext
+> => {
+  const mutationKey = ["completeFocusSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof completeFocusSession>>,
+    { id: number; data: BodyType<FocusSessionCompleteInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return completeFocusSession(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompleteFocusSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof completeFocusSession>>
+>;
+export type CompleteFocusSessionMutationBody =
+  BodyType<FocusSessionCompleteInput>;
+export type CompleteFocusSessionMutationError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Complete a session and record reflection metrics (auth required)
+ */
+export const useCompleteFocusSession = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeFocusSession>>,
+    TError,
+    { id: number; data: BodyType<FocusSessionCompleteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof completeFocusSession>>,
+  TError,
+  { id: number; data: BodyType<FocusSessionCompleteInput> },
+  TContext
+> => {
+  return useMutation(getCompleteFocusSessionMutationOptions(options));
+};
+
+/**
+ * @summary Abandon an active session without penalty (auth required)
+ */
+export const getAbandonFocusSessionUrl = (id: number) => {
+  return `/api/focus/sessions/${id}/abandon`;
+};
+
+export const abandonFocusSession = async (
+  id: number,
+  options?: RequestInit,
+): Promise<FocusSession> => {
+  return customFetch<FocusSession>(getAbandonFocusSessionUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAbandonFocusSessionMutationOptions = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof abandonFocusSession>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof abandonFocusSession>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["abandonFocusSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof abandonFocusSession>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return abandonFocusSession(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AbandonFocusSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof abandonFocusSession>>
+>;
+
+export type AbandonFocusSessionMutationError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Abandon an active session without penalty (auth required)
+ */
+export const useAbandonFocusSession = <
+  TError = ErrorType<ApiErrorBody>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof abandonFocusSession>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof abandonFocusSession>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAbandonFocusSessionMutationOptions(options));
+};
+
+/**
+ * @summary Cognitive-bias check run before casting a review verdict (auth required)
+ */
+export const getGetReviewReadinessUrl = (params: GetReviewReadinessParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/focus/review-readiness?${stringifiedParams}`
+    : `/api/focus/review-readiness`;
+};
+
+export const getReviewReadiness = async (
+  params: GetReviewReadinessParams,
+  options?: RequestInit,
+): Promise<ReviewReadiness> => {
+  return customFetch<ReviewReadiness>(getGetReviewReadinessUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetReviewReadinessQueryKey = (
+  params?: GetReviewReadinessParams,
+) => {
+  return [`/api/focus/review-readiness`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetReviewReadinessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReviewReadiness>>,
+  TError = ErrorType<ApiErrorBody>,
+>(
+  params: GetReviewReadinessParams,
+  options?: {
+    query?: Partial<UseQueryOptions<
+      Awaited<ReturnType<typeof getReviewReadiness>>,
+      TError,
+      TData
+    >>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetReviewReadinessQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getReviewReadiness>>
+  > = ({ signal }) => getReviewReadiness(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReviewReadiness>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetReviewReadinessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReviewReadiness>>
+>;
+export type GetReviewReadinessQueryError = ErrorType<ApiErrorBody>;
+
+/**
+ * @summary Cognitive-bias check run before casting a review verdict (auth required)
+ */
+
+export function useGetReviewReadiness<
+  TData = Awaited<ReturnType<typeof getReviewReadiness>>,
+  TError = ErrorType<ApiErrorBody>,
+>(
+  params: GetReviewReadinessParams,
+  options?: {
+    query?: Partial<UseQueryOptions<
+      Awaited<ReturnType<typeof getReviewReadiness>>,
+      TError,
+      TData
+    >>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetReviewReadinessQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
