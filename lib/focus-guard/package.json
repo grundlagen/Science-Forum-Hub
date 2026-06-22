@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/focus-guard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Attention-protection engine for deep scientific work. Pure, deterministic, psychology-grounded.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts"
+  },
+  "scripts": {
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}

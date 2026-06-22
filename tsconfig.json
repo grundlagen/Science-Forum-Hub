@@ -7,6 +7,9 @@
       "path": "./lib/db"
     },
     {
+      "path": "./lib/focus-guard"
+    },
+    {
       "path": "./lib/api-client-react"
     },
     {

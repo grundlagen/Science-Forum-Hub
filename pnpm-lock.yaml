@@ -659,6 +659,19 @@ importers:
         specifier: ^0.31.9
         version: 0.31.9
 
+  lib/focus-guard:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
   lib/integrations-openai-ai-react:
     devDependencies:
       '@types/react':
