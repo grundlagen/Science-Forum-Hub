@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/focus-guard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Epistemic-integrity guardrail for scientific discourse: keeps reviews and comments tethered to a paper's central claim and surfaces cognitive bias with autonomy-supportive nudges.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}
