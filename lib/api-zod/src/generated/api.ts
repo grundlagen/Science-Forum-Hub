@@ -539,3 +539,564 @@ export const GetUserProfileResponse = zod.object({
     commentsPosted: zod.number(),
   }),
 });
+
+/**
+ * @summary Get the current user's Focus Guard preferences (creates defaults on first read)
+ */
+export const GetFocusPreferencesResponse = zod.object({
+  userId: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  focusMinutes: zod.number(),
+  breakMinutes: zod.number(),
+  longBreakMinutes: zod.number(),
+  cyclesBeforeLongBreak: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  guardRails: zod
+    .object({
+      dimFeed: zod.boolean(),
+      hideMetrics: zod.boolean(),
+      singleTaskLock: zod.boolean(),
+      parkingLot: zod.boolean(),
+      breakReminders: zod.boolean(),
+    })
+    .describe(
+      "Opt-in attention guard rails (all default to supportive, non-coercive values)",
+    ),
+  soundscape: zod.enum(["none", "rain", "cafe", "brown_noise", "library"]),
+  ritualNudge: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update Focus Guard preferences (auth required)
+ */
+export const updateFocusPreferencesBodyFocusMinutesMin = 5;
+export const updateFocusPreferencesBodyFocusMinutesMax = 180;
+
+export const updateFocusPreferencesBodyBreakMinutesMax = 60;
+
+export const updateFocusPreferencesBodyLongBreakMinutesMax = 120;
+
+export const updateFocusPreferencesBodyCyclesBeforeLongBreakMax = 12;
+
+export const updateFocusPreferencesBodyDailyGoalMinutesMin = 5;
+export const updateFocusPreferencesBodyDailyGoalMinutesMax = 960;
+
+export const UpdateFocusPreferencesBody = zod
+  .object({
+    technique: zod
+      .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+      .optional()
+      .describe("Timeboxing rhythm for a focus session"),
+    focusMinutes: zod
+      .number()
+      .min(updateFocusPreferencesBodyFocusMinutesMin)
+      .max(updateFocusPreferencesBodyFocusMinutesMax)
+      .optional(),
+    breakMinutes: zod
+      .number()
+      .min(1)
+      .max(updateFocusPreferencesBodyBreakMinutesMax)
+      .optional(),
+    longBreakMinutes: zod
+      .number()
+      .min(1)
+      .max(updateFocusPreferencesBodyLongBreakMinutesMax)
+      .optional(),
+    cyclesBeforeLongBreak: zod
+      .number()
+      .min(1)
+      .max(updateFocusPreferencesBodyCyclesBeforeLongBreakMax)
+      .optional(),
+    dailyGoalMinutes: zod
+      .number()
+      .min(updateFocusPreferencesBodyDailyGoalMinutesMin)
+      .max(updateFocusPreferencesBodyDailyGoalMinutesMax)
+      .optional(),
+    guardRails: zod
+      .object({
+        dimFeed: zod.boolean(),
+        hideMetrics: zod.boolean(),
+        singleTaskLock: zod.boolean(),
+        parkingLot: zod.boolean(),
+        breakReminders: zod.boolean(),
+      })
+      .optional()
+      .describe(
+        "Opt-in attention guard rails (all default to supportive, non-coercive values)",
+      ),
+    soundscape: zod
+      .enum(["none", "rain", "cafe", "brown_noise", "library"])
+      .optional(),
+    ritualNudge: zod.string().nullish(),
+  })
+  .describe("Partial update — only provided fields are changed");
+
+export const UpdateFocusPreferencesResponse = zod.object({
+  userId: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  focusMinutes: zod.number(),
+  breakMinutes: zod.number(),
+  longBreakMinutes: zod.number(),
+  cyclesBeforeLongBreak: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  guardRails: zod
+    .object({
+      dimFeed: zod.boolean(),
+      hideMetrics: zod.boolean(),
+      singleTaskLock: zod.boolean(),
+      parkingLot: zod.boolean(),
+      breakReminders: zod.boolean(),
+    })
+    .describe(
+      "Opt-in attention guard rails (all default to supportive, non-coercive values)",
+    ),
+  soundscape: zod.enum(["none", "rain", "cafe", "brown_noise", "library"]),
+  ritualNudge: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List the current user's focus sessions, most recent first (auth required)
+ */
+export const ListFocusSessionsQueryParams = zod.object({
+  status: zod
+    .enum(["active", "completed", "abandoned", "expired", "all"])
+    .optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListFocusSessionsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  intention: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  intent: zod
+    .enum(["read", "review", "write", "replicate", "explore"])
+    .describe("The kind of deep work the session is for"),
+  plannedMinutes: zod.number(),
+  goalType: zod.enum(["papers", "reviews", "minutes", "custom"]),
+  goalTarget: zod.number(),
+  paperId: zod.number().nullable(),
+  field: zod.string().nullable(),
+  status: zod.enum(["active", "completed", "abandoned", "expired"]),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  focusSeconds: zod.number(),
+  goalProgress: zod.number(),
+  breaksTaken: zod.number(),
+  distractions: zod.array(
+    zod
+      .object({
+        id: zod.string(),
+        text: zod.string(),
+        kind: zod.enum(["thought", "task", "urge", "external"]),
+        parkedAt: zod.coerce.date(),
+        resolved: zod.boolean(),
+      })
+      .describe("A parked distraction (Zeigarnik cognitive offload)"),
+  ),
+  distractionCount: zod.number(),
+  energyBefore: zod.number().nullable(),
+  focusRating: zod.number().nullable(),
+  moodAfter: zod.string().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListFocusSessionsResponse = zod.array(
+  ListFocusSessionsResponseItem,
+);
+
+/**
+ * @summary Start a new focus session (auth required). Fails if one is already active.
+ */
+
+export const startFocusSessionBodyPlannedMinutesMax = 240;
+
+export const StartFocusSessionBody = zod.object({
+  intention: zod.string().min(1),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  intent: zod
+    .enum(["read", "review", "write", "replicate", "explore"])
+    .optional()
+    .describe("The kind of deep work the session is for"),
+  plannedMinutes: zod
+    .number()
+    .min(1)
+    .max(startFocusSessionBodyPlannedMinutesMax),
+  goalType: zod.enum(["papers", "reviews", "minutes", "custom"]).optional(),
+  goalTarget: zod.number().min(1).optional(),
+  paperId: zod.number().nullish(),
+  field: zod.string().nullish(),
+  energyBefore: zod.number().nullish(),
+});
+
+/**
+ * @summary The current user's active session, or null (auth required)
+ */
+export const GetActiveFocusSessionResponse = zod.object({
+  session: zod.union([
+    zod.object({
+      id: zod.number(),
+      userId: zod.string(),
+      intention: zod.string(),
+      technique: zod
+        .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+        .describe("Timeboxing rhythm for a focus session"),
+      intent: zod
+        .enum(["read", "review", "write", "replicate", "explore"])
+        .describe("The kind of deep work the session is for"),
+      plannedMinutes: zod.number(),
+      goalType: zod.enum(["papers", "reviews", "minutes", "custom"]),
+      goalTarget: zod.number(),
+      paperId: zod.number().nullable(),
+      field: zod.string().nullable(),
+      status: zod.enum(["active", "completed", "abandoned", "expired"]),
+      startedAt: zod.coerce.date(),
+      endedAt: zod.coerce.date().nullable(),
+      focusSeconds: zod.number(),
+      goalProgress: zod.number(),
+      breaksTaken: zod.number(),
+      distractions: zod.array(
+        zod
+          .object({
+            id: zod.string(),
+            text: zod.string(),
+            kind: zod.enum(["thought", "task", "urge", "external"]),
+            parkedAt: zod.coerce.date(),
+            resolved: zod.boolean(),
+          })
+          .describe("A parked distraction (Zeigarnik cognitive offload)"),
+      ),
+      distractionCount: zod.number(),
+      energyBefore: zod.number().nullable(),
+      focusRating: zod.number().nullable(),
+      moodAfter: zod.string().nullable(),
+      reflection: zod.string().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
+ * @summary Get one of the current user's focus sessions (auth required)
+ */
+export const GetFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetFocusSessionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  intention: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  intent: zod
+    .enum(["read", "review", "write", "replicate", "explore"])
+    .describe("The kind of deep work the session is for"),
+  plannedMinutes: zod.number(),
+  goalType: zod.enum(["papers", "reviews", "minutes", "custom"]),
+  goalTarget: zod.number(),
+  paperId: zod.number().nullable(),
+  field: zod.string().nullable(),
+  status: zod.enum(["active", "completed", "abandoned", "expired"]),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  focusSeconds: zod.number(),
+  goalProgress: zod.number(),
+  breaksTaken: zod.number(),
+  distractions: zod.array(
+    zod
+      .object({
+        id: zod.string(),
+        text: zod.string(),
+        kind: zod.enum(["thought", "task", "urge", "external"]),
+        parkedAt: zod.coerce.date(),
+        resolved: zod.boolean(),
+      })
+      .describe("A parked distraction (Zeigarnik cognitive offload)"),
+  ),
+  distractionCount: zod.number(),
+  energyBefore: zod.number().nullable(),
+  focusRating: zod.number().nullable(),
+  moodAfter: zod.string().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Heartbeat — advance focused time, goal progress, breaks (auth required)
+ */
+export const UpdateFocusSessionProgressParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updateFocusSessionProgressBodyAddSecondsMin = 0;
+export const updateFocusSessionProgressBodyAddSecondsMax = 3600;
+
+export const updateFocusSessionProgressBodyGoalProgressMin = 0;
+
+export const updateFocusSessionProgressBodyBreaksTakenMin = 0;
+
+export const UpdateFocusSessionProgressBody = zod
+  .object({
+    addSeconds: zod
+      .number()
+      .min(updateFocusSessionProgressBodyAddSecondsMin)
+      .max(updateFocusSessionProgressBodyAddSecondsMax)
+      .optional(),
+    goalProgress: zod
+      .number()
+      .min(updateFocusSessionProgressBodyGoalProgressMin)
+      .optional(),
+    breaksTaken: zod
+      .number()
+      .min(updateFocusSessionProgressBodyBreaksTakenMin)
+      .optional(),
+  })
+  .describe(
+    "Heartbeat — addSeconds increments focused time; goalProgress\/breaksTaken set absolute values",
+  );
+
+export const UpdateFocusSessionProgressResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  intention: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  intent: zod
+    .enum(["read", "review", "write", "replicate", "explore"])
+    .describe("The kind of deep work the session is for"),
+  plannedMinutes: zod.number(),
+  goalType: zod.enum(["papers", "reviews", "minutes", "custom"]),
+  goalTarget: zod.number(),
+  paperId: zod.number().nullable(),
+  field: zod.string().nullable(),
+  status: zod.enum(["active", "completed", "abandoned", "expired"]),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  focusSeconds: zod.number(),
+  goalProgress: zod.number(),
+  breaksTaken: zod.number(),
+  distractions: zod.array(
+    zod
+      .object({
+        id: zod.string(),
+        text: zod.string(),
+        kind: zod.enum(["thought", "task", "urge", "external"]),
+        parkedAt: zod.coerce.date(),
+        resolved: zod.boolean(),
+      })
+      .describe("A parked distraction (Zeigarnik cognitive offload)"),
+  ),
+  distractionCount: zod.number(),
+  energyBefore: zod.number().nullable(),
+  focusRating: zod.number().nullable(),
+  moodAfter: zod.string().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Park a distraction to the session's parking lot (Zeigarnik offload, auth required)
+ */
+export const ParkFocusDistractionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ParkFocusDistractionBody = zod.object({
+  text: zod.string().min(1),
+  kind: zod.enum(["thought", "task", "urge", "external"]).optional(),
+});
+
+export const ParkFocusDistractionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  intention: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  intent: zod
+    .enum(["read", "review", "write", "replicate", "explore"])
+    .describe("The kind of deep work the session is for"),
+  plannedMinutes: zod.number(),
+  goalType: zod.enum(["papers", "reviews", "minutes", "custom"]),
+  goalTarget: zod.number(),
+  paperId: zod.number().nullable(),
+  field: zod.string().nullable(),
+  status: zod.enum(["active", "completed", "abandoned", "expired"]),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  focusSeconds: zod.number(),
+  goalProgress: zod.number(),
+  breaksTaken: zod.number(),
+  distractions: zod.array(
+    zod
+      .object({
+        id: zod.string(),
+        text: zod.string(),
+        kind: zod.enum(["thought", "task", "urge", "external"]),
+        parkedAt: zod.coerce.date(),
+        resolved: zod.boolean(),
+      })
+      .describe("A parked distraction (Zeigarnik cognitive offload)"),
+  ),
+  distractionCount: zod.number(),
+  energyBefore: zod.number().nullable(),
+  focusRating: zod.number().nullable(),
+  moodAfter: zod.string().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Complete a session with optional reflection and flow rating (auth required)
+ */
+export const CompleteFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const completeFocusSessionBodyFocusRatingMax = 5;
+
+export const completeFocusSessionBodyGoalProgressMin = 0;
+
+export const CompleteFocusSessionBody = zod.object({
+  focusRating: zod
+    .number()
+    .min(1)
+    .max(completeFocusSessionBodyFocusRatingMax)
+    .nullish(),
+  moodAfter: zod.string().nullish(),
+  reflection: zod.string().nullish(),
+  goalProgress: zod
+    .number()
+    .min(completeFocusSessionBodyGoalProgressMin)
+    .nullish(),
+});
+
+export const CompleteFocusSessionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  intention: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  intent: zod
+    .enum(["read", "review", "write", "replicate", "explore"])
+    .describe("The kind of deep work the session is for"),
+  plannedMinutes: zod.number(),
+  goalType: zod.enum(["papers", "reviews", "minutes", "custom"]),
+  goalTarget: zod.number(),
+  paperId: zod.number().nullable(),
+  field: zod.string().nullable(),
+  status: zod.enum(["active", "completed", "abandoned", "expired"]),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  focusSeconds: zod.number(),
+  goalProgress: zod.number(),
+  breaksTaken: zod.number(),
+  distractions: zod.array(
+    zod
+      .object({
+        id: zod.string(),
+        text: zod.string(),
+        kind: zod.enum(["thought", "task", "urge", "external"]),
+        parkedAt: zod.coerce.date(),
+        resolved: zod.boolean(),
+      })
+      .describe("A parked distraction (Zeigarnik cognitive offload)"),
+  ),
+  distractionCount: zod.number(),
+  energyBefore: zod.number().nullable(),
+  focusRating: zod.number().nullable(),
+  moodAfter: zod.string().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Abandon an active session early (auth required)
+ */
+export const AbandonFocusSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AbandonFocusSessionResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  intention: zod.string(),
+  technique: zod
+    .enum(["pomodoro", "ultradian", "flowmodoro", "timeboxed"])
+    .describe("Timeboxing rhythm for a focus session"),
+  intent: zod
+    .enum(["read", "review", "write", "replicate", "explore"])
+    .describe("The kind of deep work the session is for"),
+  plannedMinutes: zod.number(),
+  goalType: zod.enum(["papers", "reviews", "minutes", "custom"]),
+  goalTarget: zod.number(),
+  paperId: zod.number().nullable(),
+  field: zod.string().nullable(),
+  status: zod.enum(["active", "completed", "abandoned", "expired"]),
+  startedAt: zod.coerce.date(),
+  endedAt: zod.coerce.date().nullable(),
+  focusSeconds: zod.number(),
+  goalProgress: zod.number(),
+  breaksTaken: zod.number(),
+  distractions: zod.array(
+    zod
+      .object({
+        id: zod.string(),
+        text: zod.string(),
+        kind: zod.enum(["thought", "task", "urge", "external"]),
+        parkedAt: zod.coerce.date(),
+        resolved: zod.boolean(),
+      })
+      .describe("A parked distraction (Zeigarnik cognitive offload)"),
+  ),
+  distractionCount: zod.number(),
+  energyBefore: zod.number().nullable(),
+  focusRating: zod.number().nullable(),
+  moodAfter: zod.string().nullable(),
+  reflection: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Aggregate focus stats, streaks, and a psychology-grounded insight (auth required)
+ */
+export const GetFocusStatsResponse = zod.object({
+  streakDays: zod.number(),
+  bestStreakDays: zod.number(),
+  todayMinutes: zod.number(),
+  dailyGoalMinutes: zod.number(),
+  goalMetToday: zod.boolean(),
+  weekMinutes: zod.number(),
+  totalSessions: zod.number(),
+  completedSessions: zod.number(),
+  completionRate: zod.number(),
+  avgFocusRating: zod.number().nullable(),
+  totalFocusMinutes: zod.number(),
+  distractionsParked: zod.number(),
+  insight: zod.string(),
+  insightCitation: zod.string(),
+});

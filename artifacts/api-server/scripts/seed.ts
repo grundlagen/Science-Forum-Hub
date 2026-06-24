@@ -6,9 +6,13 @@ import {
   aiReportsTable,
   reviewsTable,
   commentsTable,
+  focusPreferencesTable,
+  focusSessionsTable,
+  DEFAULT_GUARD_RAILS,
   type RigorReportJson,
   type AiSurveyJson,
   type PaperReferenceJson,
+  type InsertFocusSession,
 } from "@workspace/db";
 
 type SeedProfile = { id: string; displayName: string; bio: string };
@@ -368,12 +372,168 @@ const PAPERS: SeedPaper[] = [
   },
 ];
 
+const DAY_MS = 86_400_000;
+
+/**
+ * Demo Focus Guard history for a seed user — a short streak of completed deep-work
+ * sessions so the dashboard, streaks, and insight have something to render.
+ * `dayOffset` counts backwards from today (0 = today).
+ */
+type SeedFocus = {
+  userId: string;
+  dayOffset: number;
+  intention: string;
+  technique: InsertFocusSession["technique"];
+  intent: InsertFocusSession["intent"];
+  plannedMinutes: number;
+  focusMinutes: number;
+  goalType: InsertFocusSession["goalType"];
+  goalTarget: number;
+  goalProgress: number;
+  status: InsertFocusSession["status"];
+  focusRating: number | null;
+  reflection: string | null;
+  distractions: string[];
+};
+
+const FOCUS_SESSIONS: SeedFocus[] = [
+  {
+    userId: "seed_user_iris",
+    dayOffset: 0,
+    intention: "When I open SciVet, I will read one paper fully before scrolling the feed.",
+    technique: "pomodoro",
+    intent: "read",
+    plannedMinutes: 50,
+    focusMinutes: 48,
+    goalType: "papers",
+    goalTarget: 2,
+    goalProgress: 2,
+    status: "completed",
+    focusRating: 4,
+    reflection: "Atlas's entropy-gradient argument is cleaner than I expected.",
+    distractions: ["reply to lab Slack", "check arXiv listing"],
+  },
+  {
+    userId: "seed_user_iris",
+    dayOffset: 1,
+    intention: "When I finish this review, I will write one concrete, falsifiable critique.",
+    technique: "ultradian",
+    intent: "review",
+    plannedMinutes: 90,
+    focusMinutes: 86,
+    goalType: "reviews",
+    goalTarget: 3,
+    goalProgress: 3,
+    status: "completed",
+    focusRating: 5,
+    reflection: "Deep flow once notifications were off.",
+    distractions: [],
+  },
+  {
+    userId: "seed_user_iris",
+    dayOffset: 2,
+    intention: "When my mind wanders, I will reread the last paragraph rather than switch tasks.",
+    technique: "flowmodoro",
+    intent: "read",
+    plannedMinutes: 45,
+    focusMinutes: 41,
+    goalType: "papers",
+    goalTarget: 1,
+    goalProgress: 1,
+    status: "completed",
+    focusRating: 3,
+    reflection: null,
+    distractions: ["email about grant deadline"],
+  },
+  {
+    userId: "seed_user_iris",
+    dayOffset: 4,
+    intention: "When the timer ends, I will note one thing I learned before stopping.",
+    technique: "pomodoro",
+    intent: "write",
+    plannedMinutes: 25,
+    focusMinutes: 12,
+    goalType: "minutes",
+    goalTarget: 25,
+    goalProgress: 12,
+    status: "abandoned",
+    focusRating: null,
+    reflection: null,
+    distractions: ["unexpected meeting"],
+  },
+  {
+    userId: "seed_user_atlas",
+    dayOffset: 0,
+    intention: "When I feel the urge to check something, I will park it and stay on this paper.",
+    technique: "timeboxed",
+    intent: "replicate",
+    plannedMinutes: 60,
+    focusMinutes: 58,
+    goalType: "minutes",
+    goalTarget: 60,
+    goalProgress: 58,
+    status: "completed",
+    focusRating: 4,
+    reflection: "Reworked the DESI pipeline section.",
+    distractions: ["idea for P4 prediction"],
+  },
+];
+
+async function seedFocus() {
+  for (const userId of ["seed_user_iris", "seed_user_atlas"]) {
+    await db
+      .insert(focusPreferencesTable)
+      .values({
+        userId,
+        technique: userId === "seed_user_iris" ? "pomodoro" : "timeboxed",
+        dailyGoalMinutes: 90,
+        guardRails: DEFAULT_GUARD_RAILS,
+      })
+      .onConflictDoNothing();
+  }
+
+  for (const f of FOCUS_SESSIONS) {
+    const startedAt = new Date(Date.now() - f.dayOffset * DAY_MS);
+    const endedAt =
+      f.status === "active"
+        ? null
+        : new Date(startedAt.getTime() + f.focusMinutes * 60_000);
+    const distractions = f.distractions.map((text, i) => ({
+      id: `seed_${f.userId}_${f.dayOffset}_${i}`,
+      text,
+      kind: "thought" as const,
+      parkedAt: new Date(startedAt.getTime() + (i + 1) * 5 * 60_000).toISOString(),
+      resolved: false,
+    }));
+    await db.insert(focusSessionsTable).values({
+      userId: f.userId,
+      intention: f.intention,
+      technique: f.technique,
+      intent: f.intent,
+      plannedMinutes: f.plannedMinutes,
+      goalType: f.goalType,
+      goalTarget: f.goalTarget,
+      goalProgress: f.goalProgress,
+      status: f.status,
+      startedAt,
+      endedAt,
+      focusSeconds: f.focusMinutes * 60,
+      focusRating: f.focusRating,
+      reflection: f.reflection,
+      distractions,
+      distractionCount: distractions.length,
+    });
+  }
+}
+
 async function main() {
   // wipe (in dependency order)
   await db.delete(commentsTable);
   await db.delete(reviewsTable);
   await db.delete(aiReportsTable);
   await db.delete(papersTable);
+  await db.delete(focusSessionsTable);
+  await db.delete(focusPreferencesTable);
   await db.delete(profilesTable);
 
   for (const p of PROFILES) {
@@ -461,7 +621,17 @@ async function main() {
     await db.update(papersTable).set({ stage }).where(eq(papersTable.id, paper.id));
   }
 
-  console.log("Seed complete:", PAPERS.length, "papers,", PROFILES.length, "profiles");
+  await seedFocus();
+
+  console.log(
+    "Seed complete:",
+    PAPERS.length,
+    "papers,",
+    PROFILES.length,
+    "profiles,",
+    FOCUS_SESSIONS.length,
+    "focus sessions",
+  );
 }
 
 main().then(() => process.exit(0)).catch((e) => {

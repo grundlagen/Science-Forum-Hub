@@ -16,6 +16,7 @@ import PaperDetail from "@/pages/paper-detail";
 import PaperEdit from "@/pages/paper-edit";
 import Profile from "@/pages/profile";
 import Me from "@/pages/me";
+import Focus from "@/pages/focus";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/submit" component={Submit} />
       <Route path="/papers/:id" component={PaperDetail} />
       <Route path="/papers/:id/edit" component={PaperEdit} />
+      <Route path="/focus" component={Focus} />
       <Route path="/profile/:id" component={Profile} />
       <Route path="/me" component={Me} />
       

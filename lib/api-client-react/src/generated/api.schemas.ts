@@ -229,6 +229,261 @@ export interface FeedStats {
   totalReviews: number;
 }
 
+/**
+ * Timeboxing rhythm for a focus session
+ */
+export type FocusTechnique =
+  (typeof FocusTechnique)[keyof typeof FocusTechnique];
+
+export const FocusTechnique = {
+  pomodoro: "pomodoro",
+  ultradian: "ultradian",
+  flowmodoro: "flowmodoro",
+  timeboxed: "timeboxed",
+} as const;
+
+/**
+ * The kind of deep work the session is for
+ */
+export type FocusIntent = (typeof FocusIntent)[keyof typeof FocusIntent];
+
+export const FocusIntent = {
+  read: "read",
+  review: "review",
+  write: "write",
+  replicate: "replicate",
+  explore: "explore",
+} as const;
+
+export type FocusGoalType = (typeof FocusGoalType)[keyof typeof FocusGoalType];
+
+export const FocusGoalType = {
+  papers: "papers",
+  reviews: "reviews",
+  minutes: "minutes",
+  custom: "custom",
+} as const;
+
+export type FocusStatus = (typeof FocusStatus)[keyof typeof FocusStatus];
+
+export const FocusStatus = {
+  active: "active",
+  completed: "completed",
+  abandoned: "abandoned",
+  expired: "expired",
+} as const;
+
+export type FocusSoundscape =
+  (typeof FocusSoundscape)[keyof typeof FocusSoundscape];
+
+export const FocusSoundscape = {
+  none: "none",
+  rain: "rain",
+  cafe: "cafe",
+  brown_noise: "brown_noise",
+  library: "library",
+} as const;
+
+export type DistractionKind =
+  (typeof DistractionKind)[keyof typeof DistractionKind];
+
+export const DistractionKind = {
+  thought: "thought",
+  task: "task",
+  urge: "urge",
+  external: "external",
+} as const;
+
+/**
+ * Opt-in attention guard rails (all default to supportive, non-coercive values)
+ */
+export interface FocusGuardRails {
+  dimFeed: boolean;
+  hideMetrics: boolean;
+  singleTaskLock: boolean;
+  parkingLot: boolean;
+  breakReminders: boolean;
+}
+
+/**
+ * A parked distraction (Zeigarnik cognitive offload)
+ */
+export interface FocusDistraction {
+  id: string;
+  text: string;
+  kind: DistractionKind;
+  parkedAt: string;
+  resolved: boolean;
+}
+
+export interface FocusPreferences {
+  userId: string;
+  technique: FocusTechnique;
+  focusMinutes: number;
+  breakMinutes: number;
+  longBreakMinutes: number;
+  cyclesBeforeLongBreak: number;
+  dailyGoalMinutes: number;
+  guardRails: FocusGuardRails;
+  soundscape: FocusSoundscape;
+  /** @nullable */
+  ritualNudge: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Partial update — only provided fields are changed
+ */
+export interface FocusPreferencesInput {
+  technique?: FocusTechnique;
+  /**
+   * @minimum 5
+   * @maximum 180
+   */
+  focusMinutes?: number;
+  /**
+   * @minimum 1
+   * @maximum 60
+   */
+  breakMinutes?: number;
+  /**
+   * @minimum 1
+   * @maximum 120
+   */
+  longBreakMinutes?: number;
+  /**
+   * @minimum 1
+   * @maximum 12
+   */
+  cyclesBeforeLongBreak?: number;
+  /**
+   * @minimum 5
+   * @maximum 960
+   */
+  dailyGoalMinutes?: number;
+  guardRails?: FocusGuardRails;
+  soundscape?: FocusSoundscape;
+  /** @nullable */
+  ritualNudge?: string | null;
+}
+
+export interface FocusSession {
+  id: number;
+  userId: string;
+  intention: string;
+  technique: FocusTechnique;
+  intent: FocusIntent;
+  plannedMinutes: number;
+  goalType: FocusGoalType;
+  goalTarget: number;
+  /** @nullable */
+  paperId: number | null;
+  /** @nullable */
+  field: string | null;
+  status: FocusStatus;
+  startedAt: string;
+  /** @nullable */
+  endedAt: string | null;
+  focusSeconds: number;
+  goalProgress: number;
+  breaksTaken: number;
+  distractions: FocusDistraction[];
+  distractionCount: number;
+  /** @nullable */
+  energyBefore: number | null;
+  /** @nullable */
+  focusRating: number | null;
+  /** @nullable */
+  moodAfter: string | null;
+  /** @nullable */
+  reflection: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActiveFocusSession {
+  session: FocusSession | null;
+}
+
+export interface FocusSessionStartInput {
+  /** @minLength 1 */
+  intention: string;
+  technique: FocusTechnique;
+  intent?: FocusIntent;
+  /**
+   * @minimum 1
+   * @maximum 240
+   */
+  plannedMinutes: number;
+  goalType?: FocusGoalType;
+  /** @minimum 1 */
+  goalTarget?: number;
+  /** @nullable */
+  paperId?: number | null;
+  /** @nullable */
+  field?: string | null;
+  /** @nullable */
+  energyBefore?: number | null;
+}
+
+/**
+ * Heartbeat — addSeconds increments focused time; goalProgress/breaksTaken set absolute values
+ */
+export interface FocusSessionProgressInput {
+  /**
+   * @minimum 0
+   * @maximum 3600
+   */
+  addSeconds?: number;
+  /** @minimum 0 */
+  goalProgress?: number;
+  /** @minimum 0 */
+  breaksTaken?: number;
+}
+
+export interface DistractionInput {
+  /** @minLength 1 */
+  text: string;
+  kind?: DistractionKind;
+}
+
+export interface FocusSessionCompleteInput {
+  /**
+   * @minimum 1
+   * @maximum 5
+   * @nullable
+   */
+  focusRating?: number | null;
+  /** @nullable */
+  moodAfter?: string | null;
+  /** @nullable */
+  reflection?: string | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  goalProgress?: number | null;
+}
+
+export interface FocusStats {
+  streakDays: number;
+  bestStreakDays: number;
+  todayMinutes: number;
+  dailyGoalMinutes: number;
+  goalMetToday: boolean;
+  weekMinutes: number;
+  totalSessions: number;
+  completedSessions: number;
+  completionRate: number;
+  /** @nullable */
+  avgFocusRating: number | null;
+  totalFocusMinutes: number;
+  distractionsParked: number;
+  insight: string;
+  insightCitation: string;
+}
+
 export type ListPapersParams = {
   stage?: ListPapersStage;
   field?: string;
@@ -256,4 +511,20 @@ export const ListPapersSort = {
   trending: "trending",
   recent: "recent",
   top: "top",
+} as const;
+
+export type ListFocusSessionsParams = {
+  status?: ListFocusSessionsStatus;
+  limit?: number;
+};
+
+export type ListFocusSessionsStatus =
+  (typeof ListFocusSessionsStatus)[keyof typeof ListFocusSessionsStatus];
+
+export const ListFocusSessionsStatus = {
+  active: "active",
+  completed: "completed",
+  abandoned: "abandoned",
+  expired: "expired",
+  all: "all",
 } as const;

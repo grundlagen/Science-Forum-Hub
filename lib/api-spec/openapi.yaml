@@ -21,6 +21,8 @@ tags:
     description: Scientific field taxonomy
   - name: users
     description: User profiles
+  - name: focus
+    description: Focus Guard — psychology-grounded deep-work sessions and attention guard rails
 paths:
   /healthz:
     get:
@@ -424,6 +426,325 @@ paths:
                 $ref: "#/components/schemas/UserProfile"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/preferences:
+    get:
+      operationId: getFocusPreferences
+      tags: [focus]
+      summary: Get the current user's Focus Guard preferences (creates defaults on first read)
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusPreferences"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    put:
+      operationId: updateFocusPreferences
+      tags: [focus]
+      summary: Update Focus Guard preferences (auth required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusPreferencesInput"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusPreferences"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions:
+    get:
+      operationId: listFocusSessions
+      tags: [focus]
+      summary: List the current user's focus sessions, most recent first (auth required)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, completed, abandoned, expired, all]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    post:
+      operationId: startFocusSession
+      tags: [focus]
+      summary: Start a new focus session (auth required). Fails if one is already active.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusSessionStartInput"
+      responses:
+        "201":
+          description: Started session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "409":
+          description: A session is already active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/active:
+    get:
+      operationId: getActiveFocusSession
+      tags: [focus]
+      summary: The current user's active session, or null (auth required)
+      responses:
+        "200":
+          description: Active session wrapper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveFocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}:
+    get:
+      operationId: getFocusSession
+      tags: [focus]
+      summary: Get one of the current user's focus sessions (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+    patch:
+      operationId: updateFocusSessionProgress
+      tags: [focus]
+      summary: Heartbeat — advance focused time, goal progress, breaks (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusSessionProgressInput"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "409":
+          description: Session is not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}/distractions:
+    post:
+      operationId: parkFocusDistraction
+      tags: [focus]
+      summary: Park a distraction to the session's parking lot (Zeigarnik offload, auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DistractionInput"
+      responses:
+        "200":
+          description: Session with the parked distraction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}/complete:
+    post:
+      operationId: completeFocusSession
+      tags: [focus]
+      summary: Complete a session with optional reflection and flow rating (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusSessionCompleteInput"
+      responses:
+        "200":
+          description: Completed session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/sessions/{id}/abandon:
+    post:
+      operationId: abandonFocusSession
+      tags: [focus]
+      summary: Abandon an active session early (auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Abandoned session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorBody"
+
+  /focus/stats:
+    get:
+      operationId: getFocusStats
+      tags: [focus]
+      summary: Aggregate focus stats, streaks, and a psychology-grounded insight (auth required)
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusStats"
+        "401":
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -956,3 +1277,359 @@ components:
         - published
         - contributors
         - totalReviews
+
+    FocusTechnique:
+      type: string
+      description: Timeboxing rhythm for a focus session
+      enum: [pomodoro, ultradian, flowmodoro, timeboxed]
+
+    FocusIntent:
+      type: string
+      description: The kind of deep work the session is for
+      enum: [read, review, write, replicate, explore]
+
+    FocusGoalType:
+      type: string
+      enum: [papers, reviews, minutes, custom]
+
+    FocusStatus:
+      type: string
+      enum: [active, completed, abandoned, expired]
+
+    FocusSoundscape:
+      type: string
+      enum: [none, rain, cafe, brown_noise, library]
+
+    DistractionKind:
+      type: string
+      enum: [thought, task, urge, external]
+
+    FocusGuardRails:
+      type: object
+      description: Opt-in attention guard rails (all default to supportive, non-coercive values)
+      properties:
+        dimFeed:
+          type: boolean
+        hideMetrics:
+          type: boolean
+        singleTaskLock:
+          type: boolean
+        parkingLot:
+          type: boolean
+        breakReminders:
+          type: boolean
+      required:
+        - dimFeed
+        - hideMetrics
+        - singleTaskLock
+        - parkingLot
+        - breakReminders
+
+    FocusDistraction:
+      type: object
+      description: A parked distraction (Zeigarnik cognitive offload)
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        kind:
+          $ref: "#/components/schemas/DistractionKind"
+        parkedAt:
+          type: string
+          format: date-time
+        resolved:
+          type: boolean
+      required:
+        - id
+        - text
+        - kind
+        - parkedAt
+        - resolved
+
+    FocusPreferences:
+      type: object
+      properties:
+        userId:
+          type: string
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        focusMinutes:
+          type: integer
+        breakMinutes:
+          type: integer
+        longBreakMinutes:
+          type: integer
+        cyclesBeforeLongBreak:
+          type: integer
+        dailyGoalMinutes:
+          type: integer
+        guardRails:
+          $ref: "#/components/schemas/FocusGuardRails"
+        soundscape:
+          $ref: "#/components/schemas/FocusSoundscape"
+        ritualNudge:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - userId
+        - technique
+        - focusMinutes
+        - breakMinutes
+        - longBreakMinutes
+        - cyclesBeforeLongBreak
+        - dailyGoalMinutes
+        - guardRails
+        - soundscape
+        - ritualNudge
+        - createdAt
+        - updatedAt
+
+    FocusPreferencesInput:
+      type: object
+      description: Partial update — only provided fields are changed
+      properties:
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        focusMinutes:
+          type: integer
+          minimum: 5
+          maximum: 180
+        breakMinutes:
+          type: integer
+          minimum: 1
+          maximum: 60
+        longBreakMinutes:
+          type: integer
+          minimum: 1
+          maximum: 120
+        cyclesBeforeLongBreak:
+          type: integer
+          minimum: 1
+          maximum: 12
+        dailyGoalMinutes:
+          type: integer
+          minimum: 5
+          maximum: 960
+        guardRails:
+          $ref: "#/components/schemas/FocusGuardRails"
+        soundscape:
+          $ref: "#/components/schemas/FocusSoundscape"
+        ritualNudge:
+          type: ["string", "null"]
+
+    FocusSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        intention:
+          type: string
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        intent:
+          $ref: "#/components/schemas/FocusIntent"
+        plannedMinutes:
+          type: integer
+        goalType:
+          $ref: "#/components/schemas/FocusGoalType"
+        goalTarget:
+          type: integer
+        paperId:
+          type: ["integer", "null"]
+        field:
+          type: ["string", "null"]
+        status:
+          $ref: "#/components/schemas/FocusStatus"
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        focusSeconds:
+          type: integer
+        goalProgress:
+          type: integer
+        breaksTaken:
+          type: integer
+        distractions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FocusDistraction"
+        distractionCount:
+          type: integer
+        energyBefore:
+          type: ["integer", "null"]
+        focusRating:
+          type: ["integer", "null"]
+        moodAfter:
+          type: ["string", "null"]
+        reflection:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - intention
+        - technique
+        - intent
+        - plannedMinutes
+        - goalType
+        - goalTarget
+        - paperId
+        - field
+        - status
+        - startedAt
+        - endedAt
+        - focusSeconds
+        - goalProgress
+        - breaksTaken
+        - distractions
+        - distractionCount
+        - energyBefore
+        - focusRating
+        - moodAfter
+        - reflection
+        - createdAt
+        - updatedAt
+
+    ActiveFocusSession:
+      type: object
+      properties:
+        session:
+          oneOf:
+            - $ref: "#/components/schemas/FocusSession"
+            - type: "null"
+      required:
+        - session
+
+    FocusSessionStartInput:
+      type: object
+      properties:
+        intention:
+          type: string
+          minLength: 1
+        technique:
+          $ref: "#/components/schemas/FocusTechnique"
+        intent:
+          $ref: "#/components/schemas/FocusIntent"
+        plannedMinutes:
+          type: integer
+          minimum: 1
+          maximum: 240
+        goalType:
+          $ref: "#/components/schemas/FocusGoalType"
+        goalTarget:
+          type: integer
+          minimum: 1
+        paperId:
+          type: ["integer", "null"]
+        field:
+          type: ["string", "null"]
+        energyBefore:
+          type: ["integer", "null"]
+      required:
+        - intention
+        - technique
+        - plannedMinutes
+
+    FocusSessionProgressInput:
+      type: object
+      description: Heartbeat — addSeconds increments focused time; goalProgress/breaksTaken set absolute values
+      properties:
+        addSeconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+        goalProgress:
+          type: integer
+          minimum: 0
+        breaksTaken:
+          type: integer
+          minimum: 0
+
+    DistractionInput:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+        kind:
+          $ref: "#/components/schemas/DistractionKind"
+      required:
+        - text
+
+    FocusSessionCompleteInput:
+      type: object
+      properties:
+        focusRating:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        moodAfter:
+          type: ["string", "null"]
+        reflection:
+          type: ["string", "null"]
+        goalProgress:
+          type: ["integer", "null"]
+          minimum: 0
+
+    FocusStats:
+      type: object
+      properties:
+        streakDays:
+          type: integer
+        bestStreakDays:
+          type: integer
+        todayMinutes:
+          type: integer
+        dailyGoalMinutes:
+          type: integer
+        goalMetToday:
+          type: boolean
+        weekMinutes:
+          type: integer
+        totalSessions:
+          type: integer
+        completedSessions:
+          type: integer
+        completionRate:
+          type: number
+        avgFocusRating:
+          type: ["number", "null"]
+        totalFocusMinutes:
+          type: integer
+        distractionsParked:
+          type: integer
+        insight:
+          type: string
+        insightCitation:
+          type: string
+      required:
+        - streakDays
+        - bestStreakDays
+        - todayMinutes
+        - dailyGoalMinutes
+        - goalMetToday
+        - weekMinutes
+        - totalSessions
+        - completedSessions
+        - completionRate
+        - avgFocusRating
+        - totalFocusMinutes
+        - distractionsParked
+        - insight
+        - insightCitation
