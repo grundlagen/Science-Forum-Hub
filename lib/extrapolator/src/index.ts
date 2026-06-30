@@ -2,3 +2,7 @@ export * from "./provenance";
 export * from "./resolve";
 export * from "./linkage";
 export * from "./groundTruth";
+export * from "./extract";
+export * from "./dossier";
+export * from "./detectors/base";
+export * from "./detectors/foreignFunding";

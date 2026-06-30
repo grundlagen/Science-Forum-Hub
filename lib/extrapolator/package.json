@@ -8,7 +8,9 @@
   },
   "scripts": {
     "slice": "tsx src/slice.ts",
-    "seed-ground-truth": "tsx src/seedGroundTruth.ts"
+    "seed-ground-truth": "tsx src/seedGroundTruth.ts",
+    "detect-foreign-funding": "tsx src/detectForeignFunding.ts",
+    "validate-foreign-funding": "tsx src/validateForeignFunding.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",

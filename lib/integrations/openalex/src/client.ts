@@ -1,4 +1,11 @@
-import { openalexWorksResponseSchema, type OpenAlexWorksResponse } from "./types";
+import {
+  openalexWorksResponseSchema,
+  openalexAuthorsResponseSchema,
+  openalexFunderSchema,
+  type OpenAlexWorksResponse,
+  type OpenAlexAuthorsResponse,
+  type OpenAlexFunder,
+} from "./types";
 
 const BASE = "https://api.openalex.org";
 
@@ -62,4 +69,27 @@ export async function getWorksByAuthorId(
   if (m) params.set("mailto", m);
   const json = await getJson(`${BASE}/works?${params.toString()}`);
   return openalexWorksResponseSchema.parse(json);
+}
+
+export interface AuthorSearchOpts {
+  perPage?: number;
+}
+
+export async function searchAuthors(
+  name: string,
+  opts: AuthorSearchOpts = {},
+): Promise<OpenAlexAuthorsResponse> {
+  const params = new URLSearchParams();
+  params.set("search", name);
+  params.set("per_page", String(opts.perPage ?? 5));
+  const m = mailto();
+  if (m) params.set("mailto", m);
+  const json = await getJson(`${BASE}/authors?${params.toString()}`);
+  return openalexAuthorsResponseSchema.parse(json);
+}
+
+export async function getFunder(funderId: string): Promise<OpenAlexFunder> {
+  const id = funderId.replace(/^https?:\/\/openalex\.org\//, "");
+  const json = await getJson(`${BASE}/funders/${id}`);
+  return openalexFunderSchema.parse(json);
 }

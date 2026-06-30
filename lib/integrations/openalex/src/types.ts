@@ -56,6 +56,35 @@ export const openalexWorksResponseSchema = z
   })
   .passthrough();
 
+// Authors search.
+export const openalexAuthorSchema = z
+  .object({
+    id: z.string().nullish(),
+    orcid: z.string().nullish(),
+    display_name: z.string().nullish(),
+    works_count: z.number().nullish(),
+  })
+  .passthrough();
+
+export const openalexAuthorsResponseSchema = z
+  .object({
+    results: z.array(openalexAuthorSchema).nullish(),
+    meta: z.object({ count: z.number().nullish() }).passthrough().nullish(),
+  })
+  .passthrough();
+
+// Funder lookup (for funder country resolution).
+export const openalexFunderSchema = z
+  .object({
+    id: z.string().nullish(),
+    display_name: z.string().nullish(),
+    country_code: z.string().nullish(),
+  })
+  .passthrough();
+
 export type OpenAlexInstitution = z.infer<typeof openalexInstitutionSchema>;
 export type OpenAlexWork = z.infer<typeof openalexWorkSchema>;
 export type OpenAlexWorksResponse = z.infer<typeof openalexWorksResponseSchema>;
+export type OpenAlexAuthor = z.infer<typeof openalexAuthorSchema>;
+export type OpenAlexAuthorsResponse = z.infer<typeof openalexAuthorsResponseSchema>;
+export type OpenAlexFunder = z.infer<typeof openalexFunderSchema>;
