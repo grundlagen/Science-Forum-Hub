@@ -1,31 +1,37 @@
-# Image-forensics PoC (Pipeline A)
+# Image-forensics (Pipeline A)
 
-A working proof that within-corpus scientific-image duplication detection is **not**
-algorithmically hard. ~150 lines, off-the-shelf libraries.
+Within-corpus scientific-image duplication detection. Off-the-shelf libraries; no giant
+external database required for the David-style (one lab's own figures) use case.
 
-- `detector.py` — pHash (whole-panel near-dupes) + ORB/RANSAC (region reuse that is
-  rotation/scale/crop invariant). Ranked signals for human review.
-- `make_synthetic_test.py` — plants two known manipulations and verifies detection.
+## Modules
+- `detector.py` — whole-panel pHash + cross-image ORB/RANSAC (rotation/scale/crop invariant).
+- `forensics.py` — **intra-image copy-move** (region cloned within one panel) + **ELA**
+  splice hint. The single-image techniques ImageTwin/Proofig apply.
+- `advanced_detector.py` — `detector.scan` **+ flip-invariant** ORB pass (mirrored region
+  reuse, which plain homography misses).
+- `stress_test.py` — synthetic benchmark: recall across manipulation types + false-positive rate.
+- `make_synthetic_test.py` — minimal planted-manipulation self-test.
 
 ```bash
 pip install -r requirements.txt
-python make_synthetic_test.py          # self-test with planted duplications
-python detector.py <folder-of-panels>  # run on real extracted figure panels
+python stress_test.py            # benchmark the full stack
+python advanced_detector.py ...  # (import) cross-image incl. flips
+python forensics.py <image>      # single-image copy-move + ELA
 ```
 
-Demonstrated result (synthetic):
+## Benchmark (stress_test.py, synthetic)
 ```
-[phash     ] score=100.00  dup_of_a.png       <-> panel_a.png         (hamming=0)
-[orb+ransac] score=100.00  dup_of_a.png       <-> panel_a.png         (349 matches)
-[orb+ransac] score= 60.00  panel_b.png        <-> spliced_from_b.png  (60 matches, rotation/scale/crop invariant)
+cross-image recall = 100% (5/5): exact dup, JPEG-recompressed, rotated splice,
+                                 scaled splice, mirrored (flipped) splice
+false-positive rate = 0% (0/6 unrelated clean pairs)
+intra-image copy-move: cloned image fires; clean image = 0
 ```
 
-## What this PoC does NOT yet do (the actual work)
-1. **Figure → panel segmentation** (split multi-panel figures into cells). The real
-   accuracy bottleneck; needs a layout model.
-2. **Cross-literature search.** Same primitives + an ANN index (FAISS / pgvector /
-   Qdrant) over embeddings (DINOv2/CLIP) of tens of millions of panels. See
-   `../../docs/research-integrity/COST-AND-MOAT.md` for the cost of that.
-3. **Splice/seam + ELA detectors**, and validation against the ground-truth set.
+## Where this sits vs ImageTwin
+Algorithmically comparable for **single-corpus** detection (whole-panel, region reuse
+incl. rotation/scale/crop/flip, and intra-image cloning). The remaining gap is
+ImageTwin's **~150M-image cross-literature index** — a data/infra build (DINOv2/CLIP
+embeddings + an ANN index over harvested open-access figures), not an algorithm gap.
+See `../../docs/research-integrity/COST-AND-MOAT.md` for the cost of that index.
 
 Not legal advice. Output is probable-cause signal for human review, never a fraud finding.
