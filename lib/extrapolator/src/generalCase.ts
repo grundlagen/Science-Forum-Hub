@@ -8,6 +8,7 @@ import {
   programsForDomain,
   type WhistleblowerProgram,
 } from "./programs";
+import { triage, type EntityScale, type TriageResult } from "./triage";
 
 export interface GeneralCase {
   title: string;
@@ -18,12 +19,15 @@ export interface GeneralCase {
   signal: DetectorSignal;
   programs: WhistleblowerProgram[];
   estimatedRecoveryUsd: number | null;
+  triage: TriageResult;
 }
 
 export interface AssembleGeneralOpts {
   estimatedRecoveryUsd?: number;
   disclosureState?: DisclosureState;
   governmentDeclined?: boolean;
+  entityScale?: EntityScale;
+  publicBenefitNote?: string | null;
 }
 
 export function assembleGeneralCase(signal: DetectorSignal, opts: AssembleGeneralOpts = {}): GeneralCase {
@@ -36,6 +40,12 @@ export function assembleGeneralCase(signal: DetectorSignal, opts: AssembleGenera
     signal,
     programs: signal.domain ? programsForDomain(signal.domain) : [],
     estimatedRecoveryUsd: opts.estimatedRecoveryUsd ?? null,
+    triage: triage({
+      signalScore: signal.score,
+      amountUsd: opts.estimatedRecoveryUsd ?? null,
+      entityScale: opts.entityScale,
+      publicBenefitNote: opts.publicBenefitNote,
+    }),
   };
 }
 
@@ -101,10 +111,22 @@ export function renderGeneralCase(gc: GeneralCase, opts: AssembleGeneralOpts = {
   }
   lines.push(
     ``,
+    `## Ethics & handling (human judgment required)`,
+    `- Entity scale: ${gc.triage.entityScale}`,
+    `- Recommended action: **${gc.triage.recommendedAction}** — ${gc.triage.rationale}`,
+  );
+  if (gc.triage.ethicsFlags.length) {
+    for (const f of gc.triage.ethicsFlags) lines.push(`  - ${f}`);
+  } else {
+    lines.push(`  - (no specific ethics flags)`);
+  }
+  lines.push(
+    ``,
     `## Next steps`,
-    `1. Human review: confirm identity (e.g., UEI), dates, and the underlying claim.`,
-    `2. Establish the false-claim / non-compliance theory for the chosen program.`,
-    `3. Route to qualified counsel; counsel decides filing + disclosure sequencing.`,
+    `1. Human review: confirm identity (e.g., UEI/NPI), dates, and the underlying claim.`,
+    `2. Apply the ethics call above — small/individual/public-benefit subjects: consider notifying first.`,
+    `3. Establish the false-claim / non-compliance theory for the chosen program.`,
+    `4. Route to qualified counsel; counsel decides filing + disclosure sequencing.`,
     ``,
   );
   return lines.join("\n");

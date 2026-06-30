@@ -13,7 +13,9 @@
     { "path": "../integrations/nih-reporter" },
     { "path": "../integrations/openalex" },
     { "path": "../integrations/usaspending" },
-    { "path": "../integrations/sam-exclusions" }
+    { "path": "../integrations/sam-exclusions" },
+    { "path": "../integrations/oig-leie" },
+    { "path": "../integrations/cms" }
   ],
   "include": ["src"]
 }

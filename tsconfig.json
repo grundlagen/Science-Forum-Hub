@@ -31,6 +31,12 @@
       "path": "./lib/integrations/sam-exclusions"
     },
     {
+      "path": "./lib/integrations/oig-leie"
+    },
+    {
+      "path": "./lib/integrations/cms"
+    },
+    {
       "path": "./lib/extrapolator"
     }
   ]
