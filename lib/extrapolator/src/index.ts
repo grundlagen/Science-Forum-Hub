@@ -6,3 +6,5 @@ export * from "./extract";
 export * from "./dossier";
 export * from "./detectors/base";
 export * from "./detectors/foreignFunding";
+export * from "./certification";
+export * from "./paperGrants";

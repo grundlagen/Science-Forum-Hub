@@ -40,6 +40,25 @@ export const projectsResponseSchema = z
   })
   .passthrough();
 
+// Publications (paper <-> grant link) search.
+export const reporterPublicationSchema = z
+  .object({
+    pmid: z.union([z.string(), z.number()]).nullish(),
+    coreproject: z.string().nullish(),
+    core_project_num: z.string().nullish(),
+    appl_id: z.union([z.string(), z.number()]).nullish(),
+  })
+  .passthrough();
+
+export const publicationsResponseSchema = z
+  .object({
+    meta: z.object({ total: z.number().nullish() }).passthrough().nullish(),
+    results: z.array(reporterPublicationSchema).nullish(),
+  })
+  .passthrough();
+
 export type ReporterPi = z.infer<typeof reporterPiSchema>;
 export type ReporterProject = z.infer<typeof reporterProjectSchema>;
 export type ProjectsResponse = z.infer<typeof projectsResponseSchema>;
+export type ReporterPublication = z.infer<typeof reporterPublicationSchema>;
+export type PublicationsResponse = z.infer<typeof publicationsResponseSchema>;

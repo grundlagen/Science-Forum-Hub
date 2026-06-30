@@ -1,4 +1,9 @@
-import { projectsResponseSchema, type ProjectsResponse } from "./types";
+import {
+  projectsResponseSchema,
+  publicationsResponseSchema,
+  type ProjectsResponse,
+  type PublicationsResponse,
+} from "./types";
 
 const BASE = "https://api.reporter.nih.gov/v2";
 
@@ -75,4 +80,30 @@ export async function searchProjectsByPi(
     limit: opts.limit ?? 50,
   });
   return projectsResponseSchema.parse(json);
+}
+
+// Paper -> grant linkage. NIH RePORTER's publications endpoint maps PMIDs to the
+// core project numbers that produced/cited them (link_source = "reporter").
+export async function searchPublicationsByCoreProjects(
+  coreProjectNums: string[],
+  opts: SearchOpts = {},
+): Promise<PublicationsResponse> {
+  const json = await postWithRetry(`${BASE}/publications/search`, {
+    criteria: { core_project_nums: coreProjectNums },
+    offset: opts.offset ?? 0,
+    limit: opts.limit ?? 100,
+  });
+  return publicationsResponseSchema.parse(json);
+}
+
+export async function searchPublicationsByPmids(
+  pmids: (string | number)[],
+  opts: SearchOpts = {},
+): Promise<PublicationsResponse> {
+  const json = await postWithRetry(`${BASE}/publications/search`, {
+    criteria: { pmids: pmids.map((p) => Number(p)).filter((n) => !Number.isNaN(n)) },
+    offset: opts.offset ?? 0,
+    limit: opts.limit ?? 100,
+  });
+  return publicationsResponseSchema.parse(json);
 }

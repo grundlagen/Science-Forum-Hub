@@ -10,7 +10,8 @@
     "slice": "tsx src/slice.ts",
     "seed-ground-truth": "tsx src/seedGroundTruth.ts",
     "detect-foreign-funding": "tsx src/detectForeignFunding.ts",
-    "validate-foreign-funding": "tsx src/validateForeignFunding.ts"
+    "validate-foreign-funding": "tsx src/validateForeignFunding.ts",
+    "verify-certification": "tsx src/verifyCertification.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
