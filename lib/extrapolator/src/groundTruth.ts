@@ -86,6 +86,66 @@ export const KNOWN_POSITIVES: InsertRiGroundTruthCase[] = [
       "https://www.thecrimson.com/article/2026/6/28/nadler-catalyst-whistleblower-suit-ruling/",
     notes: "Ongoing; ~$93M CTSA grant, 41/56 objectives reportedly unfinished.",
   },
+  // --- Added from a live public-record scan (2026-06-30); verify figures vs primary sources. ---
+  {
+    label: "Athira Pharma",
+    vector: "image_manipulation",
+    source: "doj_settlement",
+    year: 2025,
+    settlementUsd: 4_000_000,
+    relatorShareUsd: 203_434,
+    referenceUrl:
+      "https://www.fraudfighters.net/news/government-grant-whistleblower-awarded-over-200000/",
+    notes: "Image manipulation in foundational papers underlying NIH-funded drug work; relator Dr. Mallon.",
+  },
+  {
+    label: "Scripps Research Institute",
+    vector: "effort_reporting",
+    source: "doj_settlement",
+    year: 2021,
+    settlementUsd: 10_000_000,
+    referenceUrl:
+      "https://oig.hhs.gov/fraud/enforcement/the-scripps-research-institute-to-pay-10-million-to-settle-false-claims-act-allegations-related-to-mischarging-nih-sponsored-research-grants/",
+    notes: "Mischarging NIH-sponsored grants (effort/cost; weak vector, reference only).",
+  },
+  {
+    label: "Northwestern University",
+    vector: "fabricated_data",
+    source: "doj_settlement",
+    year: 2026,
+    settlementUsd: 2_300_000,
+    referenceUrl:
+      "https://retractionwatch.com/2026/01/14/northwestern-to-pay-2-3-million-for-falsified-research-in-nih-grants/",
+    notes: "Falsified research in NIH grants; repayment that reportedly did NOT reach FCA (early disclosure).",
+  },
+  {
+    label: "Ohio State University (Song Guo Zheng)",
+    vector: "foreign_funding",
+    source: "court_docket",
+    year: 2021,
+    settlementUsd: 3_800_000,
+    referenceUrl:
+      "https://www.justice.gov/usao-sdoh/pr/researcher-charged-illegally-using-us-grant-funds-develop-scientific-expertise-china",
+    notes: "Criminal: false statements on NIH grants re China ties; ~$3.8M restitution, 37 months prison.",
+  },
+  {
+    label: "Emory University (Xiao-Jiang Li)",
+    vector: "foreign_funding",
+    source: "court_docket",
+    year: 2020,
+    referenceUrl:
+      "https://www.science.org/content/article/ex-emory-scientist-ties-china-charged-fraud",
+    notes: "Criminal plea; undisclosed foreign (China) ties/funding; lab shuttered after NIH inquiry.",
+  },
+  {
+    label: "Univ. of Oklahoma HSC (Daniel Andrade)",
+    vector: "fabricated_data",
+    source: "ori_finding",
+    year: 2025,
+    referenceUrl:
+      "https://retractionwatch.com/2026/02/06/office-research-integrity-2026-ori-finding-researcher-faked-data-grant-applications/",
+    notes: "ORI finding: falsified data in two PHS grant applications; 3-year supervision + advisory bar.",
+  },
 ];
 
 // Open, machine-ingestible sources to grow this set programmatically (connector roadmap).
