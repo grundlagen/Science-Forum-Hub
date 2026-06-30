@@ -8,3 +8,4 @@ export * from "./detectors/base";
 export * from "./detectors/foreignFunding";
 export * from "./certification";
 export * from "./paperGrants";
+export * from "./casePackage";

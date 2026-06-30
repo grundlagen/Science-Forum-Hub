@@ -11,7 +11,8 @@
     "seed-ground-truth": "tsx src/seedGroundTruth.ts",
     "detect-foreign-funding": "tsx src/detectForeignFunding.ts",
     "validate-foreign-funding": "tsx src/validateForeignFunding.ts",
-    "verify-certification": "tsx src/verifyCertification.ts"
+    "verify-certification": "tsx src/verifyCertification.ts",
+    "verify-case-package": "tsx src/verifyCasePackage.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
