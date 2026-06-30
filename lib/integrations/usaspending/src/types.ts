@@ -50,3 +50,26 @@ export function normalizeAward(raw: UsaAwardRaw, category: string | null = null)
     category,
   };
 }
+
+// First-tier sub-award (prime -> sub) record.
+export interface SubawardRecord {
+  subAwardId: string | null;
+  subRecipientName: string | null;
+  amount: number | null;
+  actionDate: string | null;
+  primeAwardId: string | null;
+  primeRecipientName: string | null;
+  awardingAgency: string | null;
+}
+
+export function normalizeSubaward(raw: UsaAwardRaw): SubawardRecord {
+  return {
+    subAwardId: str(raw["Sub-Award ID"]),
+    subRecipientName: str(raw["Sub-Awardee Name"]),
+    amount: num(raw["Sub-Award Amount"]),
+    actionDate: str(raw["Sub-Award Date"]),
+    primeAwardId: str(raw["Prime Award ID"]),
+    primeRecipientName: str(raw["Prime Recipient Name"]),
+    awardingAgency: str(raw["Awarding Agency"]),
+  };
+}

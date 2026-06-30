@@ -16,8 +16,11 @@
     "verify-programs": "tsx src/verifyPrograms.ts",
     "verify-debarred": "tsx src/verifyDebarred.ts",
     "verify-excluded-provider": "tsx src/verifyExcludedProvider.ts",
+    "verify-dedupe": "tsx src/verifyDedupe.ts",
+    "verify-debarred-sub": "tsx src/verifyDebarredSub.ts",
     "scan-recipient": "tsx src/scanRecipient.ts",
-    "scan-provider": "tsx src/scanProvider.ts"
+    "scan-provider": "tsx src/scanProvider.ts",
+    "scan-subawards": "tsx src/scanSubawards.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",

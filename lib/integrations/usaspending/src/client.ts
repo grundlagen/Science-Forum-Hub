@@ -1,7 +1,9 @@
 import {
   usaSearchResponseSchema,
   normalizeAward,
+  normalizeSubaward,
   type AwardRecord,
+  type SubawardRecord,
 } from "./types";
 
 const BASE = "https://api.usaspending.gov/api/v2";
@@ -86,6 +88,48 @@ export async function searchAwardsByRecipient(
       all.push(...rows);
     } catch {
       // one category failing (e.g., no results) should not abort the rest
+    }
+  }
+  return all;
+}
+
+const SUBAWARD_FIELDS = [
+  "Sub-Award ID",
+  "Sub-Awardee Name",
+  "Sub-Award Amount",
+  "Sub-Award Date",
+  "Prime Award ID",
+  "Prime Recipient Name",
+  "Awarding Agency",
+];
+
+// First-tier sub-awards (the public prime -> sub layer). The spending_by_award endpoint
+// returns sub-awards when `subawards: true` is set.
+export async function searchSubawardsByRecipient(
+  recipientName: string,
+  opts: AwardSearchOpts = {},
+): Promise<SubawardRecord[]> {
+  const categories = opts.categories ?? ["contracts", "grants"];
+  const limit = opts.limit ?? 50;
+  const all: SubawardRecord[] = [];
+  for (const category of categories) {
+    try {
+      const json = await postWithRetry(`${BASE}/search/spending_by_award/`, {
+        filters: {
+          award_type_codes: TYPE_CODES[category],
+          recipient_search_text: [recipientName],
+        },
+        fields: SUBAWARD_FIELDS,
+        subawards: true,
+        page: 1,
+        limit,
+        sort: "Sub-Award Amount",
+        order: "desc",
+      });
+      const parsed = usaSearchResponseSchema.parse(json);
+      all.push(...(parsed.results ?? []).map(normalizeSubaward));
+    } catch {
+      // ignore per-category failures
     }
   }
   return all;
