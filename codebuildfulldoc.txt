@@ -1,0 +1,239 @@
+================================================================================
+RESEARCH-INTEGRITY -> QUI TAM / FALSE CLAIMS ACT SCANNER
+Full build document (code chat)
+Generated: 2026-06-30
+================================================================================
+
+Repo:    grundlagen/science-forum-hub   (existing TypeScript pnpm monorepo)
+Branch:  claude/building-thoughts-r6ghup   (all work; existing app untouched)
+Verified: cloned locally, `pnpm install` + full workspace `pnpm run typecheck`
+          pass; all offline self-tests pass (counts below).
+
+NOT LEGAL ADVICE. Every output is PROBABLE CAUSE for human review, never a finding
+of fraud. The decisive evidence (e.g. an NIH "Other Support" page) is usually
+non-public; the system surfaces ranked signals + case packages, default
+disclosure_state = "internal" (nothing publishable without US counsel sign-off).
+
+--------------------------------------------------------------------------------
+1. WHAT THIS IS
+--------------------------------------------------------------------------------
+A "data-miner" fraud scanner aligned with the DOJ FOCUS initiative (Apr 2026),
+which explicitly invites people who analyse PUBLIC data to file qui tam complaints.
+It turns public research + federal-funding data into ranked, provenance-backed,
+program-mapped, ethics-triaged CASE PACKAGES for whistleblower programs.
+
+One pipeline, many domains:
+  detect (signal) -> link/program-map -> reward estimate -> ETHICS triage -> case package
+
+Domains live today:
+  - Research integrity: undisclosed foreign funding (NIH x OpenAlex)
+  - Research integrity: image duplication (Python PoC; pHash + ORB/RANSAC)
+  - Research integrity: certification chain (paper -> grant -> false certification)
+  - General federal funding: debarred recipients (USASpending x SAM exclusions)
+  - Healthcare: excluded providers still billing (CMS x OIG LEIE)
+
+--------------------------------------------------------------------------------
+2. COMMIT HISTORY (branch claude/building-thoughts-r6ghup)
+--------------------------------------------------------------------------------
+  d5b2b76  base (existing repo)
+  f33c312  M0  scaffold: ri_* schema + provenance/legal hooks + NIH RePORTER &
+                OpenAlex connectors + resolve/linkage + seeded ground truth +
+                org->grants->works slice + docs
+  aed75d8  Image-forensics PoC (Python) + build-vs-buy cost analysis
+  1297203  M1  foreign-funding mismatch detector + validation harness
+  b7f976   docs: record build verification (typecheck green; CLI runs)
+  97d5271  M2  certification chain + RePORTER publications (paper<->grant)
+  4b9136d  M2.1 case assembly + Markdown case-package export
+  c34ed34  ground-truth set expanded 8 -> 14 (live public-record scan)
+  420b926  M3-gen generalize to multi-program qui-tam scanner (programs registry,
+                USASpending, SAM exclusions, debarred-recipient detector, general case)
+  2128392  M3-gen+ healthcare excluded-provider domain + ethics triage + terminal
+                bootstrap + RUNBOOK
+
+--------------------------------------------------------------------------------
+3. PACKAGES / FILES
+--------------------------------------------------------------------------------
+lib/db (@workspace/db)  -- canonical schema, extended additively
+  src/schema/integrity/
+    entities.ts       ri_institutions, ri_researchers, ri_funders, ri_grants, ri_works
+    links.ts          ri_researcher_works, ri_work_grants, ri_affiliations
+    events.ts         ri_integrity_events (retraction/correction/EoC/PubPeer)
+    provenance.ts     ri_provenance (+ public_as_of, sha256, wayback),
+                      ri_original_source_log (immutable independent-derivation log)
+    signals.ts        ri_signals, ri_cases; SignalKind + FraudDomain + DisclosureState
+                      (domain/subject_name on signals; domain/program/estimated_reward
+                       on cases; disclosure_state defaults "internal")
+    groundTruth.ts    ri_ground_truth_cases (labelled validation set)
+
+lib/integrations/* (one connector per source)
+  nih-reporter (@workspace/integration-nih-reporter)
+                searchProjectsByOrg / searchProjectsByPi / searchPublicationsBy* (zod)
+  openalex (@workspace/integration-openalex)
+                getWorksByInstitutionRor / getWorksByAuthorId / searchAuthors / getFunder
+  usaspending (@workspace/integration-usaspending)
+                searchAwardsByRecipient (live federal awards; per-category merge)
+  sam-exclusions (@workspace/integration-sam-exclusions)
+                parseExclusionsCsv + buildExclusionIndex (pure; public SAM extract)
+  oig-leie (@workspace/integration-oig-leie)
+                parseLeieCsv + buildLeieIndex (pure; public OIG LEIE CSV)
+  cms (@workspace/integration-cms)
+                queryDataset / getPartDByNpi (data.cms.gov data-api)
+
+lib/extrapolator (@workspace/extrapolator)  -- the engine
+  provenance.ts        sha256 + buildProvenance
+  resolve.ts           find-or-insert entity resolution (db-injected; OpenAlex spine)
+  linkage.ts           researcher<->work, work<->grant link helpers
+  extract.ts           reporterToAwards, worksToForeignEvidence (foreign affiliation/funder)
+  dossier.ts           buildDossier(piName): RePORTER + OpenAlex -> NIH awards + foreign evidence
+  detectors/base.ts    DetectorSignal contract (kind, score, reason, evidence, domain, subject)
+  detectors/foreignFunding.ts   Pipeline B: temporal-overlap detector + scoring + rails
+  detectors/debarredRecipient.ts  award -> SAM-excluded party (active-at-award dating)
+  detectors/excludedProvider.ts   LEIE-excluded provider drawing CMS dollars after exclusion
+  certification.ts     buildCertificationChain (implied false certifications, counterfactual)
+  paperGrants.ts       grantRefsForPmid (RePORTER) + enrichGrantRefs
+  programs.ts          whistleblower-program registry + estimateReward + programsForDomain
+  triage.ts            ethics/proportionality recommendation (see section 6)
+  casePackage.ts       research case assembly + Markdown render + persistCase
+  generalCase.ts       general (non-research) case assembly + Markdown render (+triage)
+  groundTruth.ts       KNOWN_POSITIVES (14) + GROUND_TRUTH_SOURCES
+  CLIs:  slice.ts, detectForeignFunding.ts, validateForeignFunding.ts,
+         scanRecipient.ts, scanProvider.ts, seedGroundTruth.ts
+  verify-*.ts          offline reproducible self-tests
+
+services/image-forensics (standalone Python; Pipeline A)
+  detector.py          pHash + ORB/RANSAC duplicate/region-reuse detector
+  make_synthetic_test.py   plants + detects two manipulations (self-test)
+  requirements.txt, README.md
+
+scripts/ri-bootstrap.sh        one-command terminal setup + offline self-tests + cheatsheet
+docs/research-integrity/       README, MASTER-SPEC, ARCHITECTURE, COST-AND-MOAT,
+                               RUNBOOK, .env.example
+
+--------------------------------------------------------------------------------
+4. WHISTLEBLOWER PROGRAMS (lib/extrapolator/src/programs.ts)
+--------------------------------------------------------------------------------
+  FCA (qui tam)   DOJ      31 USC 3729-3733   15-25% intervened / 25-30% declined; under seal
+  SEC             SEC      Dodd-Frank 21F     10-30% on sanctions > $1M; anonymous via counsel
+  CFTC            CFTC     CEA 23             10-30% on > $1M
+  IRS             IRS      26 USC 7623(b)     15-30% when amounts > $2M
+  FinCEN/AML      Treasury 31 USC 5323        10-30% on sanctions > $1M
+  State FCAs      State AG state qui tam      mostly Medicaid; mirrors federal FCA
+estimateReward(program, recoveryUsd, {governmentDeclined}) -> {minUsd,maxUsd,qualifies}
+
+Fraud domains -> programs: research_grants/healthcare_billing/defense_procurement/
+ppp_covid_relief/sba_loans/customs_tariff/cybersecurity_compliance/education_grants/
+general_federal_award -> FCA (+state); securities -> SEC; commodities -> CFTC;
+tax -> IRS; money_laundering_sanctions -> FinCEN.
+
+--------------------------------------------------------------------------------
+5. DETECTORS & SIGNAL SCORING (probable cause, not proof)
+--------------------------------------------------------------------------------
+foreign_funding_mismatch : foreign affiliation/funder concurrent with an NIH award
+  window (+/- grace). score 30 + 12*items + 10*(countries-1) + 20 if CN/RU/IR. Unit 7/7.
+debarred_recipient : USASpending award recipient matches a SAM exclusion; name-match 45
+  (UEI 70) + 25 if active at award start + 5 if > $1M. Unit 12/12.
+excluded_provider : LEIE-excluded NPI in CMS payment data; NPI-match 60 (name 40) + 25 if
+  payment at/after exclusion (reinstatement ends it) + 5 if > $100k. Unit 14/14.
+image_duplication (Python) : pHash whole-panel + ORB/RANSAC rotation/scale/crop-invariant
+  region reuse. Demonstrated catching a planted whole dup + a rotated splice, no FPs.
+certification_chain (shared) : work produced under grant(s) -> implied false certifications
+  (pi_oversight / allowable_expenses / full_disclosure) + counterfactual + linkage-weighted
+  confidence. Unit 12/12.
+
+--------------------------------------------------------------------------------
+6. ETHICS / PROPORTIONALITY (lib/extrapolator/src/triage.ts)  <-- user-requested
+--------------------------------------------------------------------------------
+Encodes: do NOT auto-escalate small entities, individuals, or plausible public-benefit
+actors; deprioritize low-value cases; prefer human review and notify-first.
+Recommended actions:
+  hold_low_value        recovery < $150k (disproportionate to disruption)
+  consider_notify_first small/individual subject OR claimed public benefit
+  review                default human review
+  escalate              ONLY large + value >= $1M + score >= 70
+Every general case package renders an "Ethics & handling" section. It is a
+recommendation to a human; it never acts on its own.
+
+--------------------------------------------------------------------------------
+7. CASE PACKAGE (the deliverable)
+--------------------------------------------------------------------------------
+Markdown: title, probable-cause + not-legal-advice rails, disclosure_state, the signal,
+grant/recipient linkage, certification chain (research) OR applicable programs + reward
+band (general), Ethics & handling, next steps. Persistable to ri_cases / ri_signals.
+
+--------------------------------------------------------------------------------
+8. GROUND-TRUTH / VALIDATION SET (14 real adjudicated cases)
+--------------------------------------------------------------------------------
+Dana-Farber ($15M, image, relator 17.5%), Cleveland Clinic ($7.6M, foreign), Van Andel
+(2019 $5.5M; 2021 $1.1M, foreign), Stanford ($1.9M, foreign), Duke ($112.5M, fabrication,
+declined, 30%), Harvard/Spiegelman ($1.36M, effort), Harvard/Nadler (ongoing,
+non-performance), Athira Pharma ($4M, image, relator $203k), Scripps ($10M, mischarging),
+Northwestern ($2.3M, falsified), Ohio State/Zheng (criminal, foreign), Emory/Xiao-Jiang Li
+(criminal, foreign), Univ. Oklahoma HSC/Andrade (ORI fabrication). These are the labelled
+set to measure detector precision/recall = the DOJ FOCUS "reliable correlation" metric.
+Programmatic expansion sources: ORI case summaries, Retraction Watch DB (Crossref),
+DOJ settlement PDFs, CourtListener/RECAP, NSF OIG, BioFors (47,805 labelled images).
+
+--------------------------------------------------------------------------------
+9. RUN IT ON TERMINAL
+--------------------------------------------------------------------------------
+  git fetch origin && git checkout claude/building-thoughts-r6ghup
+  bash scripts/ri-bootstrap.sh        # install + typecheck + 5 offline self-tests + cheatsheet
+
+Live scanners (need network to the public APIs; some need a downloaded CSV):
+  # research integrity (NIH x OpenAlex)
+  OPENALEX_MAILTO=you@example.org \
+  pnpm --filter @workspace/extrapolator run detect-foreign-funding -- "Qing Wang" --funders
+
+  # general federal funding (USASpending x SAM debarment) -- needs SAM Exclusions CSV
+  pnpm --filter @workspace/extrapolator run scan-recipient -- "Some Recipient Inc" \
+    --exclusions /path/to/SAM_Exclusions_Public_Extract.csv
+
+  # healthcare (CMS x OIG LEIE) -- needs LEIE CSV + current CMS dataset id
+  pnpm --filter @workspace/extrapolator run scan-provider -- \
+    --npi 1234567890 --leie /path/to/LEIE.csv --cms-dataset <datasetId> --year 2022 \
+    --scale small --public-benefit "free clinic for uninsured"
+
+Offline self-tests: verify-programs (9/9), verify-debarred (12/12),
+verify-excluded-provider (14/14), verify-certification (12/12), verify-case-package (12/12).
+
+Image PoC (Python): cd services/image-forensics && pip install -r requirements.txt
+  && python make_synthetic_test.py
+
+Persist: pnpm --filter @workspace/db run push ; then run with DATABASE_URL set.
+
+--------------------------------------------------------------------------------
+10. ENVIRONMENT NOTE
+--------------------------------------------------------------------------------
+This build was done in a sandbox whose egress policy blocks direct API hosts
+(OpenAlex, NIH, USASpending, CMS, justice.gov => 403/000); only WebSearch was
+reachable. So live scans must run where API egress is open (your terminal). The code
+was verified by cloning the branch and running pnpm install + full typecheck + all
+offline self-tests; the CLIs were confirmed to execute end-to-end (only the network
+fetch was policy-blocked).
+
+--------------------------------------------------------------------------------
+11. STANDING RULES (carried from MASTER-SPEC)
+--------------------------------------------------------------------------------
+- Signals = probable cause, never proof; default disclosure_state = internal.
+- Publish nothing without US counsel; file-under-seal by default (FCA).
+- Individuals are the relators, not the entity (Precision original-source trap).
+- Human expert analysis is the original-source defence; record it (ri_original_source_log).
+- Clean inputs only (open access / official APIs / public extracts). No Sci-Hub.
+- Validate detectors against the ground-truth set. Honour the ethics triage.
+- DOJ FOCUS: engage pre-filing with counsel on timing (FOCUS.dataminers@usdoj.gov).
+
+--------------------------------------------------------------------------------
+12. ADDING A NEW DOMAIN (pluggable)
+--------------------------------------------------------------------------------
+1) Add a connector under lib/integrations/<source>.
+2) Add a pure detector under lib/extrapolator/src/detectors/<name>.ts returning
+   DetectorSignal[] (set `domain`).
+3) Program mapping + reward + ethics triage + case package are automatic.
+4) Wire the new package into BOTH tsconfig reference lists (root + extrapolator) and
+   add it as a workspace dep of @workspace/extrapolator.
+Candidates: PPP/COVID-relief anomalies, shell/affiliated-recipient graphs, set-aside
+abuse, securities (SEC/EDGAR), customs/tariff (reverse FCA), data-fabrication (Benford).
+
+================================================================================
+END
+================================================================================
