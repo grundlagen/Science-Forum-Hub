@@ -30,5 +30,18 @@ check("research_grants maps to FCA", programsForDomain("research_grants").some((
 check("general_federal_award maps to FCA", programsForDomain("general_federal_award").some((p) => p.id === "fca"));
 check("IRS threshold is $2M", getProgram("irs")!.rewardThresholdUsd === 2_000_000);
 
+// qui tam is US-only; the new US programs exist; jurisdiction filtering works.
+check("FCA is qui tam, SEC is not", fca.isQuiTam === true && sec.isQuiTam === false);
+check("DOJ corporate pilot present, not qui tam", getProgram("doj_corporate")?.isQuiTam === false);
+check("DOJ antitrust covers bid rigging", programsForDomain("antitrust_bid_rigging").some((p) => p.id === "doj_antitrust"));
+check("tax default = US only (IRS, not HMRC/CRA/NTS)", programsForDomain("tax").every((p) => p.jurisdiction === "US"));
+check(
+  "tax {all} includes non-US tip-reward programs",
+  ["uk_hmrc", "ca_cra_otip", "kr_nts"].every((id) =>
+    programsForDomain("tax", { jurisdiction: "all" }).some((p) => p.id === id),
+  ),
+);
+check("only US/state FCA are qui tam", PROGRAMS.filter((p) => p.isQuiTam).every((p) => p.jurisdiction === "US"));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

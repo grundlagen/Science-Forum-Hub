@@ -10,6 +10,7 @@ export * from "./certification";
 export * from "./paperGrants";
 export * from "./casePackage";
 export * from "./programs";
+export * from "./dataSources";
 export * from "./generalCase";
 export * from "./triage";
 export * from "./detectors/debarredRecipient";

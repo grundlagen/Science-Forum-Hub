@@ -39,7 +39,10 @@ export type FraudDomain =
   | "securities"
   | "commodities"
   | "tax"
-  | "money_laundering_sanctions";
+  | "money_laundering_sanctions"
+  | "antitrust_bid_rigging"
+  | "immigration"
+  | "financial_institution_crime";
 
 export type DisclosureState =
   | "internal"
