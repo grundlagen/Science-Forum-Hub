@@ -6,3 +6,6 @@ export * from "./aiReports";
 export * from "./reviews";
 export * from "./comments";
 export * from "./revisions";
+
+// Research-integrity extrapolator (additive; all tables prefixed ri_).
+export * from "./integrity";

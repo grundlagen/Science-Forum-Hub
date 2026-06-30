@@ -1,0 +1,24 @@
+{
+  "name": "@workspace/extrapolator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "slice": "tsx src/slice.ts",
+    "seed-ground-truth": "tsx src/seedGroundTruth.ts"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/integration-nih-reporter": "workspace:*",
+    "@workspace/integration-openalex": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}

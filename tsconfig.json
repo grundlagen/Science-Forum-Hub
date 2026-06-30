@@ -17,6 +17,15 @@
     },
     {
       "path": "./lib/integrations-openai-ai-react"
+    },
+    {
+      "path": "./lib/integrations/nih-reporter"
+    },
+    {
+      "path": "./lib/integrations/openalex"
+    },
+    {
+      "path": "./lib/extrapolator"
     }
   ]
 }
