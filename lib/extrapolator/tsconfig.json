@@ -11,7 +11,9 @@
   "references": [
     { "path": "../db" },
     { "path": "../integrations/nih-reporter" },
-    { "path": "../integrations/openalex" }
+    { "path": "../integrations/openalex" },
+    { "path": "../integrations/usaspending" },
+    { "path": "../integrations/sam-exclusions" }
   ],
   "include": ["src"]
 }

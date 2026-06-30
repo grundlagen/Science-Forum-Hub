@@ -9,11 +9,37 @@ import {
 } from "drizzle-orm/pg-core";
 
 export type SignalKind =
+  // research-integrity signals
   | "foreign_funding_mismatch"
   | "image_duplication"
   | "certification_chain"
   | "data_anomaly"
-  | "non_performance";
+  | "non_performance"
+  // general federal-funding / qui tam signals
+  | "debarred_recipient"
+  | "excluded_provider"
+  | "duplicate_award"
+  | "shell_recipient"
+  | "set_aside_abuse"
+  | "securities_disclosure"
+  | "tax_underpayment"
+  | "other";
+
+// The fraud domain a signal/case falls under, which maps to whistleblower programs.
+export type FraudDomain =
+  | "research_grants"
+  | "healthcare_billing"
+  | "defense_procurement"
+  | "ppp_covid_relief"
+  | "sba_loans"
+  | "customs_tariff"
+  | "cybersecurity_compliance"
+  | "education_grants"
+  | "general_federal_award"
+  | "securities"
+  | "commodities"
+  | "tax"
+  | "money_laundering_sanctions";
 
 export type DisclosureState =
   | "internal"
@@ -29,6 +55,8 @@ export const riSignalsTable = pgTable("ri_signals", {
   subjectResearcherId: integer("subject_researcher_id"),
   subjectWorkId: integer("subject_work_id"),
   subjectGrantId: integer("subject_grant_id"),
+  domain: text("domain").$type<FraudDomain>(),
+  subjectName: text("subject_name"),
   score: doublePrecision("score").notNull(),
   reason: text("reason").notNull(),
   evidence: jsonb("evidence").$type<unknown>().notNull().default({}),
@@ -44,6 +72,9 @@ export const riCasesTable = pgTable("ri_cases", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   primaryResearcherId: integer("primary_researcher_id"),
+  domain: text("domain").$type<FraudDomain>(),
+  program: text("program"),
+  estimatedRewardUsd: doublePrecision("estimated_reward_usd"),
   disclosureState: text("disclosure_state").$type<DisclosureState>().notNull().default("internal"),
   ftfOwner: text("ftf_owner"),
   confidence: doublePrecision("confidence"),

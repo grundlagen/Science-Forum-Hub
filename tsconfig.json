@@ -25,6 +25,12 @@
       "path": "./lib/integrations/openalex"
     },
     {
+      "path": "./lib/integrations/usaspending"
+    },
+    {
+      "path": "./lib/integrations/sam-exclusions"
+    },
+    {
       "path": "./lib/extrapolator"
     }
   ]

@@ -9,3 +9,6 @@ export * from "./detectors/foreignFunding";
 export * from "./certification";
 export * from "./paperGrants";
 export * from "./casePackage";
+export * from "./programs";
+export * from "./generalCase";
+export * from "./detectors/debarredRecipient";

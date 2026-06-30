@@ -12,12 +12,17 @@
     "detect-foreign-funding": "tsx src/detectForeignFunding.ts",
     "validate-foreign-funding": "tsx src/validateForeignFunding.ts",
     "verify-certification": "tsx src/verifyCertification.ts",
-    "verify-case-package": "tsx src/verifyCasePackage.ts"
+    "verify-case-package": "tsx src/verifyCasePackage.ts",
+    "verify-programs": "tsx src/verifyPrograms.ts",
+    "verify-debarred": "tsx src/verifyDebarred.ts",
+    "scan-recipient": "tsx src/scanRecipient.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
     "@workspace/integration-nih-reporter": "workspace:*",
     "@workspace/integration-openalex": "workspace:*",
+    "@workspace/integration-usaspending": "workspace:*",
+    "@workspace/integration-sam-exclusions": "workspace:*",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },

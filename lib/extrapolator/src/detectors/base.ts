@@ -1,4 +1,4 @@
-import type { SignalKind } from "@workspace/db/schema";
+import type { SignalKind, FraudDomain } from "@workspace/db/schema";
 
 // Pluggable detector output. Every signal carries a human-readable reason + structured
 // evidence + the detector name (explainability is a FOCUS requirement). Maps onto
@@ -10,4 +10,6 @@ export interface DetectorSignal {
   score: number;
   reason: string;
   evidence: unknown;
+  domain?: FraudDomain;
+  subjectName?: string;
 }
