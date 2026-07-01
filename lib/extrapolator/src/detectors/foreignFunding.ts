@@ -79,16 +79,29 @@ export function detectForeignFunding(
 
   const countries = new Set(distinct.map((e) => e.country.toUpperCase()));
   const highRisk = [...countries].some((c) => HIGH_RISK_COUNTRIES.has(c));
+
+  // Score by LEGAL WEIGHT, not raw volume. The settlements turn on undisclosed foreign
+  // *research support* concurrent with an NIH award; the two evidence types map to two
+  // distinct disclosure duties, so they are weighted separately:
+  //  - foreign_funder = a foreign MONEY source -> NIH "Other Support" page (overlapping/
+  //    duplicative funding is the core Cleveland Clinic / Van Andel theory: strongest).
+  //  - foreign_affiliation = a foreign appointment/effort -> biosketch + RPPR foreign
+  //    component (the Zheng talent-program theory: strong).
+  // grant-linked facts (NIH itself ties the paper to the grant) are the only ones with
+  // proven concurrency, so unlinked (temporal-only) facts get little weight. The scale
+  // is deliberately un-saturated so cases spread instead of all pinning at 100.
+  const linkedFunder = linked.filter((e) => e.type === "foreign_funder").length;
+  const linkedAffl = linked.filter((e) => e.type === "foreign_affiliation").length;
+  const unlinkedConcurrent = distinct.length - linked.length;
   let score = 0;
   if (fired) {
-    // Bounded by DISTINCT facts and grant linkage, then scaled by identity certainty,
-    // so a merged/ambiguous identity can never produce a high-confidence signal.
     const raw =
-      20 +
-      10 * Math.min(distinct.length, 6) +
-      15 * Math.min(linked.length, 4) +
-      10 * (countries.size - 1) +
-      (highRisk ? 15 : 0);
+      10 +
+      14 * Math.min(linkedFunder, 3) +
+      9 * Math.min(linkedAffl, 3) +
+      3 * Math.min(unlinkedConcurrent, 4) +
+      (highRisk ? 8 : 0) +
+      3 * Math.min(countries.size - 1, 3);
     score = Math.round(Math.min(100, raw) * matchConfidence);
   }
 
@@ -102,10 +115,17 @@ export function detectForeignFunding(
     const linkNote = linked.length
       ? `${linked.length} on paper(s) NIH links to the grant(s)`
       : `none grant-linked (temporal overlap only)`;
+    // Be explicit that this is NOT an accusation: the decisive element — whether the PI
+    // OMITTED this from the Other Support / biosketch / RPPR foreign-component forms —
+    // lives on non-public records and is NOT observed here. A concurrent foreign tie is
+    // lawful when disclosed; most are. This flags only elements (a) support nexus and
+    // (b) concurrency, never element (c) non-disclosure.
     reason =
       `${distinct.length} distinct foreign-support fact(s) from ${[...countries].join(", ")} ` +
-      `concurrent with NIH award(s) ${awardsHit.join(", ")} (${linkNote}); ` +
-      `disclosure status unverifiable from public record.`;
+      `concurrent with NIH award(s) ${awardsHit.join(", ")} (${linkNote}). ` +
+      `NOT evidence of wrongdoing: whether these were disclosed on NIH's Other Support/` +
+      `biosketch/foreign-component forms is unobservable from public data. Lead for human ` +
+      `review of the disclosure record only — a disclosed tie is fully lawful.`;
   } else {
     reason = "No foreign support concurrent with an NIH award.";
   }

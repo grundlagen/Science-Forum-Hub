@@ -20,6 +20,17 @@ const INCLUDE_FIELDS = [
   "Organization",
 ];
 
+// RePORTER rejects org names containing non-ASCII punctuation with HTTP 400. OpenAlex
+// uses typographic dashes (e.g. "University of Wisconsin–Madison" with an en-dash), so
+// normalize dashes to ASCII and drop other non-ASCII chars before querying.
+export function normalizeOrgName(name: string): string {
+  return name
+    .replace(/[‐-―−]/g, "-")
+    .replace(/[^\x20-\x7E]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function postWithRetry(url: string, body: unknown, retries = 3): Promise<unknown> {
   let lastErr: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -58,7 +69,7 @@ export async function searchProjectsByOrg(
 ): Promise<ProjectsResponse> {
   const json = await postWithRetry(`${BASE}/projects/search`, {
     criteria: {
-      org_names: [orgName],
+      org_names: [normalizeOrgName(orgName)],
       ...(opts.fiscalYears ? { fiscal_years: opts.fiscalYears } : {}),
     },
     include_fields: INCLUDE_FIELDS,
@@ -75,7 +86,7 @@ export async function searchProjectsByPi(
   const json = await postWithRetry(`${BASE}/projects/search`, {
     criteria: {
       pi_names: [{ any_name: piName }],
-      ...(opts.orgNames ? { org_names: opts.orgNames } : {}),
+      ...(opts.orgNames ? { org_names: opts.orgNames.map(normalizeOrgName) } : {}),
       ...(opts.fiscalYears ? { fiscal_years: opts.fiscalYears } : {}),
     },
     include_fields: INCLUDE_FIELDS,
