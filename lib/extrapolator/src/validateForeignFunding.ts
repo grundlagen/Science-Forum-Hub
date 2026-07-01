@@ -30,7 +30,9 @@ async function main(): Promise<void> {
   for (const p of LABELED) {
     if (p.name.startsWith("<")) continue;
     const d = await buildDossier(p.name, { resolveFunderCountries: true });
-    const sig = detectForeignFunding(d.nihAwards, d.foreignEvidence);
+    const sig = detectForeignFunding(d.nihAwards, d.foreignEvidence, {
+      matchConfidence: d.matchConfidence,
+    });
     const predicted = sig.fired;
     const actual = p.label === "positive";
     if (predicted && actual) tp++;
@@ -39,7 +41,7 @@ async function main(): Promise<void> {
     else tn++;
     console.log(
       `${actual ? "POS" : "CTL"}  ${p.name}: ${predicted ? `FLAG(score=${sig.score})` : "clear"}` +
-        ` [awards=${d.nihAwards.length}, foreign=${d.foreignEvidence.length}]`,
+        ` [conf=${d.matchConfidence.toFixed(2)} ${d.matchMethod}, awards=${d.nihAwards.length}, foreign=${d.foreignEvidence.length}]`,
     );
   }
   const precision = tp + fp ? tp / (tp + fp) : 0;

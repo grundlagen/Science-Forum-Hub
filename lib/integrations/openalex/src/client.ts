@@ -14,7 +14,17 @@ function mailto(): string {
   return process.env.OPENALEX_MAILTO ?? "";
 }
 
-async function getJson(url: string, retries = 3): Promise<unknown> {
+function withAuth(rawUrl: string): string {
+  const u = new URL(rawUrl);
+  const m = process.env.OPENALEX_MAILTO ?? "";
+  if (m && !u.searchParams.has("mailto")) u.searchParams.set("mailto", m);
+  const key = process.env.OPENALEX_API_KEY ?? "";
+  if (key && !u.searchParams.has("api_key")) u.searchParams.set("api_key", key);
+  return u.toString();
+}
+
+async function getJson(rawUrl: string, retries = 3): Promise<unknown> {
+  const url = withAuth(rawUrl);
   let lastErr: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {

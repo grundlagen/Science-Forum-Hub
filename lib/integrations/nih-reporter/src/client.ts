@@ -48,6 +48,8 @@ export interface SearchOpts {
   limit?: number;
   offset?: number;
   fiscalYears?: number[];
+  // Narrow a PI-name search to one organisation (disambiguates common names).
+  orgNames?: string[];
 }
 
 export async function searchProjectsByOrg(
@@ -73,6 +75,7 @@ export async function searchProjectsByPi(
   const json = await postWithRetry(`${BASE}/projects/search`, {
     criteria: {
       pi_names: [{ any_name: piName }],
+      ...(opts.orgNames ? { org_names: opts.orgNames } : {}),
       ...(opts.fiscalYears ? { fiscal_years: opts.fiscalYears } : {}),
     },
     include_fields: INCLUDE_FIELDS,

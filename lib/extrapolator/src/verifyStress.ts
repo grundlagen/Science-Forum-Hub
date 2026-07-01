@@ -83,6 +83,8 @@ const ff = detectForeignFunding(
     label: `Inst ${i}`,
     workYear: 2020,
     workRef: `W${i}`,
+    grantLinked: i % 3 === 0,
+    isPiAffiliation: true,
   })),
 );
 check("foreign-funding large: fired boolean + score bounded", typeof ff.fired === "boolean" && ff.score >= 0 && ff.score <= 100);
