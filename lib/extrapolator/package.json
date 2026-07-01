@@ -12,6 +12,8 @@
     "detect-foreign-funding": "tsx src/detectForeignFunding.ts",
     "case-package": "tsx src/runCasePackage.ts",
     "scan-cases": "tsx src/scanCases.ts",
+    "mega-scan": "tsx src/runMegaScan.ts",
+    "discover": "tsx src/runDiscover.ts",
     "validate-foreign-funding": "tsx src/validateForeignFunding.ts",
     "verify-certification": "tsx src/verifyCertification.ts",
     "verify-case-package": "tsx src/verifyCasePackage.ts",

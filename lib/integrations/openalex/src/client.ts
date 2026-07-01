@@ -66,6 +66,28 @@ export async function getWorksByInstitutionRor(
   return openalexWorksResponseSchema.parse(json);
 }
 
+export interface WorksFilterOpts extends WorksOpts {
+  sort?: string;
+}
+
+// Generic filtered works search. `filter` is a raw OpenAlex filter string
+// (e.g. "funders.id:F4320332161,institutions.country_code:CN"). Used by the
+// real-world discovery scan to seed candidate authors.
+export async function searchWorks(
+  filter: string,
+  opts: WorksFilterOpts = {},
+): Promise<OpenAlexWorksResponse> {
+  const params = new URLSearchParams();
+  params.set("filter", filter);
+  params.set("per_page", String(opts.perPage ?? 50));
+  params.set("page", String(opts.page ?? 1));
+  if (opts.sort) params.set("sort", opts.sort);
+  const m = mailto();
+  if (m) params.set("mailto", m);
+  const json = await getJson(`${BASE}/works?${params.toString()}`);
+  return openalexWorksResponseSchema.parse(json);
+}
+
 export async function getWorksByAuthorId(
   openalexAuthorId: string,
   opts: WorksOpts = {},
