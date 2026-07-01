@@ -37,6 +37,9 @@
       "path": "./lib/integrations/cms"
     },
     {
+      "path": "./lib/integrations/ocds"
+    },
+    {
       "path": "./lib/extrapolator"
     }
   ]

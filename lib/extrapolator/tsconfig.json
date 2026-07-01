@@ -15,7 +15,8 @@
     { "path": "../integrations/usaspending" },
     { "path": "../integrations/sam-exclusions" },
     { "path": "../integrations/oig-leie" },
-    { "path": "../integrations/cms" }
+    { "path": "../integrations/cms" },
+    { "path": "../integrations/ocds" }
   ],
   "include": ["src"]
 }
