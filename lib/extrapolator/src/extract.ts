@@ -43,17 +43,23 @@ export function isForeign(code?: string | null): boolean {
 }
 
 export function reporterToAwards(projects: ReporterProject[]): NihAward[] {
-  const awards: NihAward[] = [];
+  // RePORTER returns one row per fiscal year, so a single core project appears many
+  // times. Collapse to distinct core projects, widening to the full award window.
+  const byCore = new Map<string, NihAward>();
   for (const p of projects) {
     const core = p.core_project_num ?? p.project_num;
     if (!core) continue;
-    awards.push({
-      coreProjectNum: core,
-      startYear: parseYear(p.project_start_date),
-      endYear: parseYear(p.project_end_date),
-    });
+    const start = parseYear(p.project_start_date);
+    const end = parseYear(p.project_end_date);
+    const prev = byCore.get(core);
+    if (!prev) {
+      byCore.set(core, { coreProjectNum: core, startYear: start, endYear: end });
+    } else {
+      if (start != null && (prev.startYear == null || start < prev.startYear)) prev.startYear = start;
+      if (end != null && (prev.endYear == null || end > prev.endYear)) prev.endYear = end;
+    }
   }
-  return awards;
+  return [...byCore.values()];
 }
 
 // Extract foreign-support evidence from a set of OpenAlex works: foreign author

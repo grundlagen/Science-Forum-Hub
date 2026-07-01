@@ -33,6 +33,7 @@ import {
 export interface Dossier {
   piName: string;
   openalexAuthorId: string | null;
+  displayName: string | null;
   orcid: string | null;
   matchConfidence: number;
   matchMethod: MatchMethod;
@@ -227,6 +228,7 @@ export async function buildDossier(piName: string, opts: DossierOpts = {}): Prom
   return {
     piName,
     openalexAuthorId: resolution.authorId,
+    displayName: resolution.displayName,
     orcid: resolution.orcid,
     matchConfidence: resolution.matchConfidence,
     matchMethod: resolution.method,
