@@ -25,6 +25,7 @@
     "verify-pass-through": "tsx src/verifyPassThrough.ts",
     "verify-fabrication": "tsx src/verifyFabrication.ts",
     "verify-ppp": "tsx src/verifyPpp.ts",
+    "scan-known-cases": "tsx src/scanKnownCases.ts",
     "verify-stress": "tsx src/verifyStress.ts",
     "scan-recipient": "tsx src/scanRecipient.ts",
     "scan-provider": "tsx src/scanProvider.ts",
