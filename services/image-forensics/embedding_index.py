@@ -86,23 +86,34 @@ def _try_deep_embedder():
     try:
         import torch  # noqa: F401
 
+        # Use the GPU when present (e.g. Colab) — this is where the speedup lives.
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         model = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14")
-        model.eval()
+        model.eval().to(device)
+        mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(device)
+        std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(device)
+        print(f"[embedding_index] DINOv2 backend on {device}")
 
         def embed(gray: np.ndarray) -> np.ndarray:
             import torch
 
             rgb = cv2.cvtColor(cv2.resize(gray, (224, 224)), cv2.COLOR_GRAY2RGB)
-            x = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0) / 255.0
-            mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-            std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+            x = torch.from_numpy(rgb).permute(2, 0, 1).float().unsqueeze(0).to(device) / 255.0
             with torch.no_grad():
-                v = model((x - mean) / std).squeeze(0).numpy()
+                v = model((x - mean) / std).squeeze(0).cpu().numpy()
             return v / (np.linalg.norm(v) + 1e-9)
 
+        # Backend id stays model-only so a cuda-built index is query-compatible on cpu
+        # (the embeddings are identical; only speed differs).
         return embed, "dinov2_vits14"
     except Exception:
         return None, None
+
+
+# Above this many panels, use a FAISS inner-product index (cosine on normalized
+# vectors) instead of a full numpy matmul. Small corpora stay on exact numpy so results
+# are byte-identical to the tests.
+FAISS_MIN = 2000
 
 
 @dataclass
@@ -121,6 +132,7 @@ class PanelIndex:
         self.keys: list[str] = []
         self._vecs: list[np.ndarray] = []
         self._matrix: np.ndarray | None = None
+        self._faiss = None  # lazily built; None=unbuilt, False=unavailable
 
     def embed(self, gray: np.ndarray) -> np.ndarray:
         return self._embed(gray)
@@ -129,23 +141,57 @@ class PanelIndex:
         self.keys.append(key)
         self._vecs.append(self.embed(gray))
         self._matrix = None
+        self._faiss = None
 
     def _mat(self) -> np.ndarray:
         if self._matrix is None:
             self._matrix = np.vstack(self._vecs) if self._vecs else np.zeros((0, 1), np.float32)
         return self._matrix
 
+    def _ensure_faiss(self):
+        """Build a FAISS inner-product index once the corpus is large enough."""
+        if self._faiss is not None:
+            return self._faiss
+        if len(self.keys) < FAISS_MIN:
+            self._faiss = False
+            return False
+        try:
+            import faiss
+
+            mat = np.ascontiguousarray(self._mat().astype("float32"))
+            idx = faiss.IndexFlatIP(mat.shape[1])  # cosine, since vectors are unit-norm
+            idx.add(mat)
+            self._faiss = idx
+        except Exception:
+            self._faiss = False
+        return self._faiss
+
+    def all_vectors(self) -> np.ndarray:
+        """The stored embedding matrix (one unit-norm row per indexed panel)."""
+        return self._mat()
+
     def query(self, gray: np.ndarray, top_k: int = 5, exclude: str | None = None) -> list[Hit]:
+        return self.query_vector(self.embed(gray).astype("float32"), top_k, exclude)
+
+    def query_vector(self, q: np.ndarray, top_k: int = 5, exclude: str | None = None) -> list[Hit]:
+        """Search by an already-computed embedding (e.g. a stored panel vector)."""
         if not self.keys:
             return []
-        q = self.embed(gray)
-        sims = self._mat() @ q
-        order = np.argsort(-sims)
+        q = q.astype("float32")
+        faiss_idx = self._ensure_faiss()
+        if faiss_idx:
+            k = min(len(self.keys), top_k + 1)  # +1 in case the top hit is the excluded self
+            sims, idxs = faiss_idx.search(q.reshape(1, -1), k)
+            pairs = list(zip(idxs[0].tolist(), sims[0].tolist()))
+        else:
+            sims = self._mat() @ q
+            order = np.argsort(-sims)
+            pairs = [(int(i), float(sims[i])) for i in order]
         hits: list[Hit] = []
-        for i in order:
-            if exclude is not None and self.keys[i] == exclude:
+        for i, sim in pairs:
+            if i < 0 or (exclude is not None and self.keys[i] == exclude):
                 continue
-            hits.append(Hit(self.keys[i], float(sims[i])))
+            hits.append(Hit(self.keys[i], float(sim)))
             if len(hits) >= top_k:
                 break
         return hits
