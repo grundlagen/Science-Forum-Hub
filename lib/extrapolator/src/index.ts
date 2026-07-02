@@ -14,6 +14,7 @@ export * from "./dataSources";
 export * from "./generalCase";
 export * from "./triage";
 export * from "./dedupe";
+export * from "./corroborate";
 export * from "./detectors/debarredRecipient";
 export * from "./detectors/excludedProvider";
 export * from "./detectors/debarredSub";

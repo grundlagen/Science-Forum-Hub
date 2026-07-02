@@ -1,18 +1,20 @@
 // Pipeline B — undisclosed foreign-funding mismatch.
 //
-// Logic (unit-tested): foreign support (affiliation or funder) that is *concurrent*
-// with an NIH award window suggests support NIH disclosure rules would cover. The
-// decisive omission lives on the non-public "Other Support" page, so this asserts
-// PROBABLE CAUSE ("disclosure status unverifiable from public record"), not fraud.
+// Logic: foreign (non-US) support that is *concurrent* with an NIH award window may be
+// support NIH disclosure rules require. The decisive omission lives on the non-public
+// "Other Support" page, so this asserts PROBABLE CAUSE, not fraud.
+//
+// COUNTRY-NEUTRAL BY DESIGN. Nationality/origin is NEVER a scoring factor. The NIH duty
+// is to disclose ALL foreign support regardless of country, so a signal's strength comes
+// from CORROBORATION — how many independent public sources and source-types agree — not
+// from which country is involved. A lone, uncorroborated foreign affiliation is common
+// and benign, so it scores low and is flagged "needs corroboration."
 import type { SignalKind } from "@workspace/db/schema";
 import type { ForeignEvidence, NihAward } from "../extract";
 import type { DetectorSignal } from "./base";
 
 export const FOREIGN_FUNDING_KIND: SignalKind = "foreign_funding_mismatch";
-const DETECTOR = "foreign-funding/v1";
-
-// NIH "foreign influence" enforcement has concentrated on these; a hit raises confidence.
-const HIGH_RISK_COUNTRIES = new Set(["CN", "RU", "IR"]);
+const DETECTOR = "foreign-funding/v2";
 
 export type ConcurrentEvidence = ForeignEvidence & { concurrentWithAward: string | null };
 
@@ -31,104 +33,64 @@ export function concurrentAward(
   return null;
 }
 
+export interface Corroboration {
+  items: number; // concurrent foreign-support items
+  sourceTypes: number; // distinct evidence types (affiliation, funder, ...)
+  distinctEntities: number; // distinct foreign institutions/funders
+  countries: string[]; // factual, NOT a risk input
+  corroborated: boolean; // >=2 independent items OR >=2 source-types
+}
+
 export interface ForeignFundingSignal extends DetectorSignal {
   evidence: ConcurrentEvidence[];
-  matchConfidence: number;
-}
-
-export interface DetectOpts {
-  // 0..1 certainty that the works/affiliations belong to the intended PI.
-  // Below this gate the signal is suppressed as an identity false-positive.
-  matchConfidence?: number;
-  gate?: number;
-}
-
-// Collapse duplicate evidence: OpenAlex repeats the same affiliation across dozens
-// of papers, which previously let raw volume alone pin the score to 100. A signal
-// is about distinct facts (country+institution+award), not how many rows repeat them.
-function dedupeKey(e: ConcurrentEvidence): string {
-  return `${e.type}|${e.country}|${e.label}|${e.concurrentWithAward}`;
+  corroboration: Corroboration;
 }
 
 export function detectForeignFunding(
   awards: NihAward[],
   rawEvidence: ForeignEvidence[],
-  opts: DetectOpts = {},
 ): ForeignFundingSignal {
-  const matchConfidence = opts.matchConfidence ?? 1;
-  const gate = opts.gate ?? 0.4;
-
   const evidence: ConcurrentEvidence[] = rawEvidence.map((e) => ({
     ...e,
     concurrentWithAward: concurrentAward(e.workYear, awards),
   }));
   const concurrent = evidence.filter((e) => e.concurrentWithAward !== null);
+  const fired = concurrent.length > 0 && awards.length > 0;
 
-  // Distinct facts, preferring the grant-linked instance of each.
-  const byKey = new Map<string, ConcurrentEvidence>();
-  for (const e of concurrent) {
-    const k = dedupeKey(e);
-    const prev = byKey.get(k);
-    if (!prev || (e.grantLinked && !prev.grantLinked)) byKey.set(k, e);
-  }
-  const distinct = [...byKey.values()];
-  const linked = distinct.filter((e) => e.grantLinked);
+  const items = concurrent.length;
+  const sourceTypes = new Set(concurrent.map((e) => e.type)).size;
+  const distinctEntities = new Set(concurrent.map((e) => e.label.trim().toLowerCase())).size;
+  const countries = [...new Set(concurrent.map((e) => e.country.toUpperCase()))];
+  const corroborated = items >= 2 || sourceTypes >= 2;
 
-  const identityOk = matchConfidence >= gate;
-  const fired = distinct.length > 0 && awards.length > 0 && identityOk;
-
-  const countries = new Set(distinct.map((e) => e.country.toUpperCase()));
-  const highRisk = [...countries].some((c) => HIGH_RISK_COUNTRIES.has(c));
-
-  // Score by LEGAL WEIGHT, not raw volume. The settlements turn on undisclosed foreign
-  // *research support* concurrent with an NIH award; the two evidence types map to two
-  // distinct disclosure duties, so they are weighted separately:
-  //  - foreign_funder = a foreign MONEY source -> NIH "Other Support" page (overlapping/
-  //    duplicative funding is the core Cleveland Clinic / Van Andel theory: strongest).
-  //  - foreign_affiliation = a foreign appointment/effort -> biosketch + RPPR foreign
-  //    component (the Zheng talent-program theory: strong).
-  // grant-linked facts (NIH itself ties the paper to the grant) are the only ones with
-  // proven concurrency, so unlinked (temporal-only) facts get little weight. The scale
-  // is deliberately un-saturated so cases spread instead of all pinning at 100.
-  const linkedFunder = linked.filter((e) => e.type === "foreign_funder").length;
-  const linkedAffl = linked.filter((e) => e.type === "foreign_affiliation").length;
-  const unlinkedConcurrent = distinct.length - linked.length;
+  // Score = corroboration only. No country/nationality term anywhere.
   let score = 0;
   if (fired) {
-    const raw =
-      10 +
-      14 * Math.min(linkedFunder, 3) +
-      9 * Math.min(linkedAffl, 3) +
-      3 * Math.min(unlinkedConcurrent, 4) +
-      (highRisk ? 8 : 0) +
-      3 * Math.min(countries.size - 1, 3);
-    score = Math.round(Math.min(100, raw) * matchConfidence);
+    score = 20; // a single concurrent item: real but weak
+    score += Math.min(20, 10 * sourceTypes); // independent source-TYPES agreeing
+    score += Math.min(24, 8 * (items - 1)); // volume of corroborating items
+    score += Math.min(16, 8 * (distinctEntities - 1)); // distinct foreign entities
+    score = Math.min(100, score);
   }
 
-  const awardsHit = [...new Set(distinct.map((e) => e.concurrentWithAward))];
-  let reason: string;
-  if (!identityOk) {
-    reason =
-      `Identity unresolved (match confidence ${matchConfidence.toFixed(2)} < ${gate}); ` +
-      `signal suppressed to avoid an identity false-positive.`;
-  } else if (fired) {
-    const linkNote = linked.length
-      ? `${linked.length} on paper(s) NIH links to the grant(s)`
-      : `none grant-linked (temporal overlap only)`;
-    // Be explicit that this is NOT an accusation: the decisive element — whether the PI
-    // OMITTED this from the Other Support / biosketch / RPPR foreign-component forms —
-    // lives on non-public records and is NOT observed here. A concurrent foreign tie is
-    // lawful when disclosed; most are. This flags only elements (a) support nexus and
-    // (b) concurrency, never element (c) non-disclosure.
-    reason =
-      `${distinct.length} distinct foreign-support fact(s) from ${[...countries].join(", ")} ` +
-      `concurrent with NIH award(s) ${awardsHit.join(", ")} (${linkNote}). ` +
-      `NOT evidence of wrongdoing: whether these were disclosed on NIH's Other Support/` +
-      `biosketch/foreign-component forms is unobservable from public data. Lead for human ` +
-      `review of the disclosure record only — a disclosed tie is fully lawful.`;
-  } else {
-    reason = "No foreign support concurrent with an NIH award.";
-  }
+  const awardsHit = [...new Set(concurrent.map((e) => e.concurrentWithAward))];
+  const reason = fired
+    ? `${items} foreign-support item(s)` +
+      (countries.length ? ` (origin: ${countries.join(", ")})` : "") +
+      ` concurrent with NIH award(s) ${awardsHit.join(", ")}, corroborated by ` +
+      `${sourceTypes} source-type(s) across ${distinctEntities} distinct entit(y|ies). ` +
+      `${corroborated ? "Corroborated" : "Single/uncorroborated — likely benign, low priority"}. ` +
+      `Country is not a risk factor (NIH requires disclosing all foreign support); ` +
+      `disclosure status unverifiable from public record — probable cause for review, not proof.`
+    : "No foreign support concurrent with an NIH award.";
 
-  return { kind: FOREIGN_FUNDING_KIND, detector: DETECTOR, fired, score, reason, evidence, matchConfidence };
+  return {
+    kind: FOREIGN_FUNDING_KIND,
+    detector: DETECTOR,
+    fired,
+    score,
+    reason,
+    evidence,
+    corroboration: { items, sourceTypes, distinctEntities, countries, corroborated },
+  };
 }
