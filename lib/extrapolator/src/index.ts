@@ -23,3 +23,6 @@ export * from "./detectors/bidRigging";
 export * from "./detectors/passThroughFront";
 export * from "./detectors/pppAnomaly";
 export * from "./stats/fabrication";
+export * from "./stats/mathdist";
+export * from "./peerReview";
+export * from "./focusGate";
