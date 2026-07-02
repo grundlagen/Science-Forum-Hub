@@ -40,6 +40,9 @@
       "path": "./lib/integrations/ocds"
     },
     {
+      "path": "./lib/integrations/sba-ppp"
+    },
+    {
       "path": "./lib/extrapolator"
     }
   ]

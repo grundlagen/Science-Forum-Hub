@@ -18,6 +18,8 @@ const ev = (country: string, type: ForeignEvidence["type"], label: string): Fore
   label,
   workYear: 2020,
   workRef: `W:${label}`,
+  grantLinked: false,
+  isPiAffiliation: true,
 });
 
 // 1. COUNTRY-NEUTRAL: identical evidence differing only in country -> identical score.

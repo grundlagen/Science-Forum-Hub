@@ -23,6 +23,12 @@ export type SignalKind =
   | "set_aside_abuse"
   | "securities_disclosure"
   | "tax_underpayment"
+  // construction / procurement signals (see docs/research-integrity/CASE-LAW-DISCOVERY-METHODS.md)
+  | "copied_test_data"
+  | "bid_rigging"
+  | "pass_through_front"
+  | "impossible_statistic"
+  | "ppp_anomaly"
   | "other";
 
 // The fraud domain a signal/case falls under, which maps to whistleblower programs.

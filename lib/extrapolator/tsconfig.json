@@ -16,7 +16,8 @@
     { "path": "../integrations/sam-exclusions" },
     { "path": "../integrations/oig-leie" },
     { "path": "../integrations/cms" },
-    { "path": "../integrations/ocds" }
+    { "path": "../integrations/ocds" },
+    { "path": "../integrations/sba-ppp" }
   ],
   "include": ["src"]
 }

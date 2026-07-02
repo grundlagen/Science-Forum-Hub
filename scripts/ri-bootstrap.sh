@@ -27,7 +27,10 @@ echo "==> typecheck"
 pnpm run typecheck
 
 echo "==> verifying detectors (offline)"
-for t in verify-programs verify-debarred verify-excluded-provider verify-certification verify-case-package; do
+for t in verify-programs verify-debarred verify-excluded-provider verify-certification \
+         verify-case-package verify-dedupe verify-debarred-sub verify-stress \
+         verify-foreign-funding verify-corroborate verify-copied-test-data \
+         verify-bid-rigging verify-pass-through verify-fabrication verify-ppp; do
   echo "--- $t ---"
   pnpm --filter "$FILTER" run "$t"
 done

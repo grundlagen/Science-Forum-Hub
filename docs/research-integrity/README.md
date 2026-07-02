@@ -11,11 +11,20 @@ False Claims Act (FCA) counsel and the DOJ **FOCUS** data-miner program.
 ## Status
 
 - **M0 — scaffold + canonical schema + connectors + slice:** done.
-- **M1 — Pipeline B foreign-funding mismatch detector + validation harness:** done.
-- **Verified:** `pnpm install` + full workspace `pnpm run typecheck` pass (M0+M1 compile
-  cleanly, existing app included); the foreign-funding CLI runs end-to-end. The detector
-  core logic is unit-tested (concurrency window, grace band, high-risk-country boost,
-  multi-country breadth, clean/pre-award negatives).
+- **M1 — Pipeline B foreign-funding mismatch detector + validation harness:** done;
+  **v2 is country-neutral by design** (corroboration-only scoring, see
+  `DEBIAS-REASONING-AND-FORUM.md`).
+- **M2+ — general-award, healthcare, dedupe, sub-award detectors + case packages:** done.
+- **Construction/procurement wave (from case law):** copied-test-data (Kokosing
+  pattern), bid-rigging screens (CV/RD/rotation), DBE pass-through fronts, PPP
+  anomalies, GRIM/Benford/terminal-digit fabrication stats — see
+  `CASE-LAW-DISCOVERY-METHODS.md` for the case-to-detector map.
+- **Image forensics:** within-corpus detector (pHash/ORB/flips/copy-move) plus panel
+  segmentation and a cross-literature embedding index (`services/image-forensics`);
+  offline benchmarks green (`stress_test.py`, `index_test.py`).
+- **Verified:** full workspace `pnpm run typecheck` + 15 offline verify suites pass.
+- **Network note:** live API calls (NIH RePORTER, OpenAlex, USASpending, Europe PMC)
+  need outbound access; some sandbox egress policies block them (you'll see `HTTP 403`).
 - **Network note:** the NIH RePORTER and OpenAlex calls need outbound access to those
   public APIs; some sandbox egress policies block them (you'll see `HTTP 403`).
 
@@ -27,9 +36,17 @@ False Claims Act (FCA) counsel and the DOJ **FOCUS** data-miner program.
   `ri_cases.disclosure_state`, `match_confidence`, and a labelled `ri_ground_truth_cases`.
 - **`@workspace/integration-nih-reporter`** — NIH RePORTER v2 client (zod-validated).
 - **`@workspace/integration-openalex`** — OpenAlex works/author/funder client (entity-resolution backbone).
-- **`@workspace/extrapolator`** — resolver + linkage + provenance helpers; `extract` +
-  `detectors/foreignFunding` (Pipeline B); `dossier` builder; seeded ground-truth set;
-  runnable slice, detector CLI, and validation harness.
+- **`@workspace/integration-usaspending` / `-sam-exclusions` / `-oig-leie` / `-cms` /
+  `-ocds` / `-sba-ppp`** — general-award, exclusion, healthcare, procurement (50+
+  countries) and PPP loan-level data (pure parsers where the source is a bulk CSV).
+- **`@workspace/extrapolator`** — resolver + linkage + provenance helpers; detectors
+  (foreign-funding v2, debarred recipient/sub, excluded provider, dedupe/shell,
+  copied-test-data, bid-rigging screens, pass-through fronts, PPP anomalies,
+  fabrication stats); corroboration layer; ethics triage; case packages; 15 offline
+  verify suites; scan CLIs.
+- **`services/image-forensics`** — duplication detector, panel segmentation,
+  cross-literature embedding index + Europe PMC figure harvester (see
+  `DATA-COLLECTION.md`).
 
 ## Run
 

@@ -18,3 +18,8 @@ export * from "./corroborate";
 export * from "./detectors/debarredRecipient";
 export * from "./detectors/excludedProvider";
 export * from "./detectors/debarredSub";
+export * from "./detectors/copiedTestData";
+export * from "./detectors/bidRigging";
+export * from "./detectors/passThroughFront";
+export * from "./detectors/pppAnomaly";
+export * from "./stats/fabrication";
