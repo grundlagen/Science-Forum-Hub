@@ -56,5 +56,26 @@ check("pre-award evidence does not fire", old.fired === false);
 // 6. Score always bounded.
 check("scores bounded 0..100", [cn, gb, de, corr, corrGb, old].every((s) => s.score >= 0 && s.score <= 100));
 
+// 7. Identity gate: a strong-looking corroborated signal is CAPPED when the author
+// match is weak (name-only, low confidence, no grant-linked papers) — the "common
+// name conflates many people" failure mode.
+const weakId = detectForeignFunding(
+  awards,
+  [ev("CN", "foreign_affiliation", "Inst A"), ev("GB", "foreign_funder", "Funder B"), ev("DE", "foreign_affiliation", "Inst C")],
+  { confidence: 0.2, method: "name-only", grantLinkedPmids: 0 },
+);
+const strongId = detectForeignFunding(
+  awards,
+  [ev("CN", "foreign_affiliation", "Inst A"), ev("GB", "foreign_funder", "Funder B"), ev("DE", "foreign_affiliation", "Inst C")],
+  { confidence: 0.9, method: "grant-anchored", grantLinkedPmids: 12 },
+);
+check("weak identity is not confirmed", weakId.identityConfirmed === false);
+check("weak identity capped at IDENTITY_UNCONFIRMED_CAP", weakId.score <= 20);
+check("weak identity reason warns of conflation", weakId.reason.includes("IDENTITY UNCONFIRMED"));
+check("strong identity is confirmed", strongId.identityConfirmed === true);
+check("strong identity keeps its full corroborated score", strongId.score === 72);
+check("weak identity capped to exactly the cap on the same evidence", weakId.score === 20);
+check("same evidence: weak-id score is far below strong-id score", weakId.score < strongId.score);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

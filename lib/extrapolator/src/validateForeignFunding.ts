@@ -30,15 +30,21 @@ async function main(): Promise<void> {
   for (const p of LABELED) {
     if (p.name.startsWith("<")) continue;
     const d = await buildDossier(p.name, { resolveFunderCountries: true });
-    const sig = detectForeignFunding(d.nihAwards, d.foreignEvidence);
-    const predicted = sig.fired;
+    const sig = detectForeignFunding(d.nihAwards, d.foreignEvidence, {
+      confidence: d.matchConfidence,
+      method: d.matchMethod,
+      grantLinkedPmids: d.matchedPmidCount,
+    });
+    // Count a hit only when identity is confirmed — an unconfirmed common-name match
+    // is not a real prediction about a real person.
+    const predicted = sig.fired && sig.identityConfirmed;
     const actual = p.label === "positive";
     if (predicted && actual) tp++;
     else if (predicted && !actual) fp++;
     else if (!predicted && actual) fn++;
     else tn++;
     console.log(
-      `${actual ? "POS" : "CTL"}  ${p.name}: ${predicted ? `FLAG(score=${sig.score})` : "clear"}` +
+      `${actual ? "POS" : "CTL"}  ${p.name}: ${predicted ? `FLAG(score=${sig.score})` : sig.fired && !sig.identityConfirmed ? `identity-unconfirmed(capped ${sig.score})` : "clear"}` +
         ` [conf=${d.matchConfidence.toFixed(2)} ${d.matchMethod}, awards=${d.nihAwards.length}, foreign=${d.foreignEvidence.length}]`,
     );
   }

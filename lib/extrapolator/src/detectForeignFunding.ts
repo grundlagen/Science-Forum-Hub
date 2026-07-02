@@ -23,7 +23,11 @@ async function main(): Promise<void> {
     resolveFunderCountries: args.includes("--funders"),
     orgHint: org,
   });
-  const sig = detectForeignFunding(dossier.nihAwards, dossier.foreignEvidence);
+  const sig = detectForeignFunding(dossier.nihAwards, dossier.foreignEvidence, {
+    confidence: dossier.matchConfidence,
+    method: dossier.matchMethod,
+    grantLinkedPmids: dossier.matchedPmidCount,
+  });
 
   console.log(`# ${piName}`);
   console.log(
