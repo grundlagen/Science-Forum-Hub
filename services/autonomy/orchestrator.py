@@ -40,12 +40,25 @@ def _sh(root: Path, *args: str, timeout: int = 3600) -> tuple[int, str]:
     return p.returncode, (p.stdout + p.stderr)
 
 
-def run_pipeline(root: Path, corpus: str, index: str, harvest: str | None, harvest_n: int) -> dict:
-    """Run the image corpus scan and parse its results.json into metrics."""
+def run_pipeline(root: Path, corpus: str, index: str, harvest: str | None, harvest_n: int,
+                 timeout: int = 1800) -> dict:
+    """Run the image corpus scan and parse its results.json into metrics.
+
+    A slow/huge harvest must NOT kill the loop: previously the scan ran under _sh's
+    default 3600s timeout and TimeoutExpired was uncaught, so a big harvest-n (the
+    3000 default) silently aborted the whole orchestrator before STATUS.md or any
+    leads were ever written. Now a timeout degrades to partial results and continues.
+    """
     args = ["python", "colab_run.py", "--corpus", corpus, "--index", index, "--out", "runs/results.json"]
     if harvest:
         args += ["--harvest", harvest, "--harvest-n", str(harvest_n)]
-    _sh(root / "services" / "image-forensics", *args)
+    try:
+        _sh(root / "services" / "image-forensics", *args, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        hb(f"pipeline timed out after {timeout}s (harvest-n={harvest_n} likely too large) "
+           f"— using any partial results.json and continuing")
+    except Exception as e:  # noqa: BLE001 - the scan must never crash the loop
+        hb(f"pipeline errored ({type(e).__name__}: {e}); continuing with any partial results")
     rp = root / "services" / "image-forensics" / "runs" / "results.json"
     if not rp.exists():
         return {}
@@ -99,6 +112,10 @@ def loop(root: Path, args: argparse.Namespace) -> None:
         edits_enabled = ok
         if not ok:
             hb("self-edits disabled for this run (backend smoke test failed); metrics/scan still run")
+            if backend.name == "colab-ai":
+                hb("  -> colab-ai is unreliable in Colab background execution. Add "
+                   "OPENROUTER_API_KEY (recommended) or GOOGLE_API_KEY in Colab Secrets "
+                   "(the padlock icon) to enable real self-edits; the scan runs regardless.")
     else:
         hb("self-edits OFF (no backend or --no-edit) — running metrics/scan/report only")
 

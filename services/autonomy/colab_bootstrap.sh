@@ -26,7 +26,10 @@ REPO="grundlagen/science-forum-hub"
 DRIVE="/content/drive/MyDrive/Research_Integrity_Runs"
 # Deep scan across the major US funders by default.
 HARVEST_QUERY="${HARVEST_QUERY:-(GRANT_AGENCY:\"NIH\" OR GRANT_AGENCY:\"National Science Foundation\" OR GRANT_AGENCY:\"Department of Defense\" OR GRANT_AGENCY:\"Department of Energy\") AND OPEN_ACCESS:y}"
-HARVEST_N="${HARVEST_N:-3000}"
+# 3000 made a single iteration run >1h and never return (it hit the pipeline timeout
+# and killed the loop before any STATUS.md/leads were written). 400 completes an
+# iteration in minutes so leads + STATUS.md actually get produced; raise it later.
+HARVEST_N="${HARVEST_N:-400}"
 BUDGET_HOURS="${BUDGET_HOURS:-8}"
 
 say() { echo -e "\n\033[1;36m>>> $*\033[0m"; }
