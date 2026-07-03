@@ -78,5 +78,19 @@ try:
 finally:
     ff_path.write_text(original)  # restore
 
+# --- self-edit plumbing (parsing + path allowlist), no LLM/network ---
+from self_edit import parse_proposal, path_allowed  # noqa: E402
+
+good = parse_proposal('noise before {"rationale":"x","files":[{"path":"services/autonomy/foo.py","content":"print(1)"}]} after')
+check("parse_proposal extracts JSON from noisy text", good is not None and len(good.files) == 1)
+check("parse_proposal rejects junk", parse_proposal("no json here") is None)
+check("parse_proposal rejects files without content", parse_proposal('{"files":[{"path":"a.py"}]}') is None)
+
+check("allow: python file under services in python_only", path_allowed("services/autonomy/x.py", True))
+check("deny: TS file in python_only mode", not path_allowed("lib/extrapolator/src/x.ts", True))
+check("allow: TS file when not python_only", path_allowed("lib/extrapolator/src/x.ts", False))
+check("deny: path outside the allowlist", not path_allowed("package.json", False))
+check("deny: path traversal", not path_allowed("services/autonomy/../../etc/passwd", True))
+
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)

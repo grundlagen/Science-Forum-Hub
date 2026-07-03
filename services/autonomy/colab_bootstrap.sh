@@ -38,20 +38,34 @@ else
   echo "WARNING: Drive not mounted. Run drive.mount('/content/drive') first, or results won't survive."
 fi
 
-say "2/6 Clone or update repo"
-if [ ! -d science-forum-hub ]; then
-  git clone --branch "$BRANCH" "https://x-access-token:${GITHUB_PAT}@github.com/${REPO}.git" science-forum-hub
+say "2/6 Clone or update repo (kept ON DRIVE so it persists + avoids re-cloning)"
+# If Drive is writable, keep the repo there so a new session reuses it (no re-clone,
+# no re-install). Otherwise fall back to a local /content clone.
+if [ -n "${RI_RUNS_DIR:-}" ]; then
+  REPO_DIR="$(dirname "$RI_RUNS_DIR")/science-forum-hub"
+else
+  REPO_DIR="/content/science-forum-hub"
 fi
-cd science-forum-hub || exit 1
+if [ ! -d "$REPO_DIR/.git" ]; then
+  echo "cloning into $REPO_DIR ..."
+  git clone --branch "$BRANCH" "https://x-access-token:${GITHUB_PAT}@github.com/${REPO}.git" "$REPO_DIR"
+else
+  echo "reusing existing repo at $REPO_DIR (injected from Drive)"
+fi
+cd "$REPO_DIR" || exit 1
 git remote set-url origin "https://x-access-token:${GITHUB_PAT}@github.com/${REPO}.git"
 git config user.email "colab-runner@example.org"; git config user.name "colab-runner"
-git fetch origin "$BRANCH" -q && git checkout "$BRANCH" -q && git pull --rebase origin "$BRANCH"
+git fetch origin "$BRANCH" -q && git checkout "$BRANCH" -q && git pull --rebase origin "$BRANCH" || echo "pull had conflicts — continuing on local state"
 
 say "3/6 Install dependencies"
-npm i -g pnpm >/dev/null 2>&1
-pnpm install
 pip -q install opencv-python-headless imagehash pillow numpy faiss-cpu torch torchvision >/dev/null 2>&1
 [ -n "${GOOGLE_API_KEY:-}" ] && pip -q install google-generativeai >/dev/null 2>&1
+if [ "${PYTHON_ONLY:-0}" = "1" ]; then
+  echo "PYTHON_ONLY=1 -> skipping Node/pnpm (the part that was struggling). The loop will"
+  echo "run + self-edit the Python scan code, gated by the image benchmarks + invariant guard."
+else
+  npm i -g pnpm >/dev/null 2>&1 && pnpm install || { echo "pnpm install FAILED — re-run with PYTHON_ONLY=1 to skip it"; }
+fi
 
 say "4/6 PREFLIGHT (fails loudly if anything is broken)"
 python -u services/autonomy/preflight.py --runs-dir "${RI_RUNS_DIR:-}" || { echo "PREFLIGHT FAILED — stopping."; exit 1; }
@@ -64,9 +78,10 @@ LOG="${RI_RUNS_DIR:-services/image-forensics/runs}/console.log"
 mkdir -p "$(dirname "$LOG")"
 echo "Live log: $LOG   (STATUS.md updates every iteration)"
 cd services/autonomy
+PYFLAG=""; [ "${PYTHON_ONLY:-0}" = "1" ] && PYFLAG="--python-only"
 # -u = unbuffered so Colab shows output live; tee = also persist to Drive.
 stdbuf -oL -eL python -u orchestrator.py \
-  --branch "$BRANCH" \
+  --branch "$BRANCH" $PYFLAG \
   --harvest "$HARVEST_QUERY" --harvest-n "$HARVEST_N" \
   --budget-hours "$BUDGET_HOURS" --max-iterations 50 --patience 5 \
   2>&1 | tee -a "$LOG"

@@ -59,9 +59,10 @@ def run_pipeline(root: Path, corpus: str, index: str, harvest: str | None, harve
 
 
 def collect_metrics(root: Path, corpus: str, index: str, harvest: str | None, harvest_n: int,
-                    gpu_hours: float) -> dict:
-    hb("running test gate (typecheck + suites + invariants)...")
-    gate = run_gate(root)
+                    gpu_hours: float, python_only: bool = False) -> dict:
+    hb("running test gate " + ("(python-only: invariants + image benchmarks)" if python_only
+                               else "(typecheck + suites + invariants)") + "...")
+    gate = run_gate(root, python_only=python_only)
     hb(f"gate: typecheck={gate.typecheck_pass} tests={gate.tests_pass} invariants={gate.invariants_ok}")
     metrics = gate.as_metrics()
     metrics["validated_detectors"] = 1  # foreign-funding has a validation harness
@@ -95,7 +96,7 @@ def loop(root: Path, args: argparse.Namespace) -> None:
     for it in range(args.max_iterations):
         gpu_hours = (time.time() - t_start) / 3600.0
         hb(f"===== iteration {it} (elapsed {gpu_hours:.2f}h) =====")
-        metrics = collect_metrics(root, args.corpus, args.index, args.harvest, args.harvest_n, gpu_hours)
+        metrics = collect_metrics(root, args.corpus, args.index, args.harvest, args.harvest_n, gpu_hours, args.python_only)
         status = spec.status(metrics)
         met_count = sum(1 for _, ok in status if ok)
         current = spec.current(metrics)
@@ -134,7 +135,9 @@ def loop(root: Path, args: argparse.Namespace) -> None:
             prompt = build_prompt(current.description, entry["metrics"], digest)
             proposal = backend.propose(prompt)
             if isinstance(proposal, EditProposal):
-                kept, result = apply_and_gate(root, proposal)
+                hb(f"LLM proposed an edit to {len(proposal.files)} file(s); gating...")
+                kept, result = apply_and_gate(root, proposal, python_only=args.python_only)
+                hb(f"edit {'KEPT (gate green)' if kept else 'REVERTED: ' + '; '.join(result.failures[:3])}")
                 entry["edit_kept"] = kept
                 if not kept:
                     entry["edit_failures"] = result.failures[:5]
@@ -148,7 +151,8 @@ def loop(root: Path, args: argparse.Namespace) -> None:
         rc, out = _sh(root, "git", "push", "origin", f"HEAD:{args.branch}")
         hb(f"pushed iter {it} to {args.branch}" if rc == 0 else f"push failed: {out.strip()[:160]}")
 
-    print(spec.report(collect_metrics(root, args.corpus, args.index, None, 0, (time.time() - t_start) / 3600.0)))
+    print(spec.report(collect_metrics(root, args.corpus, args.index, None, 0,
+                                       (time.time() - t_start) / 3600.0, args.python_only)))
 
 
 def _repo_digest(root: Path, max_chars: int = 12000) -> str:
@@ -171,6 +175,8 @@ def main() -> int:
     ap.add_argument("--max-iterations", type=int, default=50)
     ap.add_argument("--budget-hours", type=float, default=8.0)
     ap.add_argument("--patience", type=int, default=5)
+    ap.add_argument("--python-only", action="store_true",
+                    help="skip the TS toolchain (pnpm/typecheck); run + self-edit the Python scan code only")
     args = ap.parse_args()
     loop(Path(__file__).resolve().parents[2], args)
     return 0

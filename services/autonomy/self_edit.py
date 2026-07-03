@@ -10,12 +10,44 @@ ANTHROPIC_API_KEY (Claude).
 """
 from __future__ import annotations
 
+import json
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 from test_gate import run_gate, GateResult
+
+# Self-edits may only touch these path prefixes. In python_only mode this is further
+# narrowed to .py files, so the loop can improve the scan code without a working TS
+# toolchain. An LLM cannot write outside this whitelist (enforced in apply_and_gate).
+ALLOWED_EDIT_PREFIXES = ("services/image-forensics/", "services/autonomy/", "lib/extrapolator/src/")
+
+
+def parse_proposal(text: str) -> "EditProposal | None":
+    """Extract the strict-JSON contract from an LLM reply (tolerant of code fences)."""
+    if not text:
+        return None
+    m = re.search(r"\{.*\}", text, re.DOTALL)  # first '{' .. last '}'
+    if not m:
+        return None
+    try:
+        obj = json.loads(m.group(0))
+        files = [(f["path"], f["content"]) for f in obj.get("files", [])
+                 if isinstance(f.get("path"), str) and isinstance(f.get("content"), str)]
+        if not files:
+            return None
+        return EditProposal(rationale=str(obj.get("rationale", "")), files=files)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def path_allowed(rel: str, python_only: bool) -> bool:
+    rel = rel.lstrip("/")
+    if ".." in rel or not rel.startswith(ALLOWED_EDIT_PREFIXES):
+        return False
+    return rel.endswith(".py") if python_only else True
 
 
 @dataclass
@@ -36,6 +68,26 @@ class LLMBackend:
         raise NotImplementedError
 
 
+class ColabAIBackend(LLMBackend):
+    """Colab's built-in model via `from google.colab import ai` — no API key needed.
+    This is the default self-edit brain on Colab."""
+
+    name = "colab-ai"
+
+    def available(self) -> bool:
+        try:
+            from google.colab import ai  # noqa: F401
+            return True
+        except Exception:
+            return False
+
+    def propose(self, prompt: str) -> EditProposal | None:  # pragma: no cover - Colab only
+        from google.colab import ai
+
+        text = ai.generate_text(prompt)
+        return parse_proposal(text if isinstance(text, str) else str(text))
+
+
 class GeminiBackend(LLMBackend):
     name = "gemini"
 
@@ -43,9 +95,12 @@ class GeminiBackend(LLMBackend):
         return bool(os.environ.get("GOOGLE_API_KEY"))
 
     def propose(self, prompt: str) -> EditProposal | None:  # pragma: no cover - network
-        # WIRING POINT: call google-generativeai, parse a strict JSON response of the
-        # form {"rationale": str, "files": [{"path": str, "content": str}]}.
-        raise NotImplementedError("wire google-generativeai here")
+        import google.generativeai as genai
+
+        genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+        model = genai.GenerativeModel(os.environ.get("GEMINI_MODEL", "gemini-1.5-pro"))
+        resp = model.generate_content(prompt)
+        return parse_proposal(getattr(resp, "text", "") or "")
 
 
 class ClaudeBackend(LLMBackend):
@@ -55,12 +110,21 @@ class ClaudeBackend(LLMBackend):
         return bool(os.environ.get("ANTHROPIC_API_KEY"))
 
     def propose(self, prompt: str) -> EditProposal | None:  # pragma: no cover - network
-        # WIRING POINT: call the Anthropic SDK, same strict JSON contract.
-        raise NotImplementedError("wire anthropic SDK here")
+        import anthropic
+
+        client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY
+        msg = client.messages.create(
+            model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5"),
+            max_tokens=8000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
+        return parse_proposal(text)
 
 
 def get_backend() -> LLMBackend:
-    for b in (GeminiBackend(), ClaudeBackend()):
+    # Prefer Colab's built-in AI (free, no key), then keyed backends.
+    for b in (ColabAIBackend(), GeminiBackend(), ClaudeBackend()):
         if b.available():
             return b
     return LLMBackend()
@@ -71,18 +135,25 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
     return p.returncode, p.stdout + p.stderr
 
 
-def apply_and_gate(root: Path, proposal: EditProposal) -> tuple[bool, GateResult]:
+def apply_and_gate(root: Path, proposal: EditProposal, python_only: bool = False) -> tuple[bool, GateResult]:
     """Apply a proposal, run the gate, and REVERT if not green. Returns (kept, result).
 
-    Precondition: the working tree is clean (the orchestrator commits results before
-    proposing an edit), so revert is a simple restore to HEAD.
+    Rejects (without running anything) any proposal that touches a path outside the
+    allowlist. Precondition: the working tree is clean (the orchestrator commits results
+    before proposing an edit), so revert is a simple restore to HEAD.
     """
+    bad = [rel for rel, _ in proposal.files if not path_allowed(rel, python_only)]
+    if bad:
+        res = GateResult()
+        res.failures.append(f"proposal touched disallowed path(s): {bad}")
+        return False, res
+
     for rel, content in proposal.files:
         fp = root / rel
         fp.parent.mkdir(parents=True, exist_ok=True)
         fp.write_text(content)
 
-    result = run_gate(root)
+    result = run_gate(root, python_only=python_only)
     if result.green:
         _git(root, "add", "-A")
         _git(root, "commit", "-m", f"autonomy: {proposal.rationale[:72]}")
