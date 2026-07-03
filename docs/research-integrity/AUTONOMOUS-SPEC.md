@@ -61,7 +61,34 @@ Transparent, conservative EV: `cost` (GPU + storage + LLM calls + analyst hours)
 share, grounded in the Dana-Farber $15M/$2.625M exemplar but using a $5M settlement and
 17.5% share). It's a planning aid, not a promise — every assumption is in the output.
 
-## Colab Pro runbook
+## Simplest launch (one cell) — fixes the "no output / Drive didn't save" problem
+
+```python
+from google.colab import drive; drive.mount('/content/drive')   # do this FIRST
+import os
+os.environ['GITHUB_PAT']     = 'YOUR_FINE_GRAINED_PAT'   # contents:write on this repo only
+os.environ['GOOGLE_API_KEY'] = 'YOUR_GEMINI_KEY'         # optional: enables self-edits
+!bash <(curl -sSL https://raw.githubusercontent.com/grundlagen/science-forum-hub/claude/building-thoughts-r6ghup/services/autonomy/colab_bootstrap.sh)
+```
+
+`colab_bootstrap.sh` does everything and is LOUD about it: it round-trips a probe file
+to prove Drive is writable, checks GPU/deps/git/network, runs the offline selftest, then
+launches the deep scan with `python -u … | tee` so output **streams to the cell AND
+saves to Drive**. If Drive isn't writable or the network is down, it says so and stops
+instead of running silently.
+
+Two things that caused "no output / nothing saved" before, now handled:
+- **Output buffering** — the loop prints timestamped heartbeats each phase, and the
+  launcher forces unbuffered output (`python -u`, `stdbuf`), so you see live progress.
+- **Drive persistence** — `RI_RUNS_DIR` points at `/content/drive/MyDrive/
+  Research_Integrity_Runs`; `STATUS.md`, `autonomy_log.jsonl`, and `console.log` are
+  written there every iteration, so they survive a session reset. Run
+  `python services/autonomy/preflight.py` alone to just health-check.
+
+The default deep scan harvests across **NIH + NSF + DoD + DoE** open-access papers
+(`HARVEST_N=3000`, override via env). Watch `Research_Integrity_Runs/STATUS.md`.
+
+## Colab Pro runbook (manual, step by step)
 
 ```python
 # 1. clone + deps (Colab Pro GPU)

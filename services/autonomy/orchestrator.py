@@ -19,9 +19,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
+
+
+def hb(msg: str) -> None:
+    """Heartbeat: timestamped, flushed line so Colab shows live progress."""
+    print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
 from milestones import SpecState
 from cost_benefit import CostInputs, BenefitInputs, cost_benefit, render_cost_benefit
@@ -54,10 +60,14 @@ def run_pipeline(root: Path, corpus: str, index: str, harvest: str | None, harve
 
 def collect_metrics(root: Path, corpus: str, index: str, harvest: str | None, harvest_n: int,
                     gpu_hours: float) -> dict:
+    hb("running test gate (typecheck + suites + invariants)...")
     gate = run_gate(root)
+    hb(f"gate: typecheck={gate.typecheck_pass} tests={gate.tests_pass} invariants={gate.invariants_ok}")
     metrics = gate.as_metrics()
     metrics["validated_detectors"] = 1  # foreign-funding has a validation harness
+    hb(f"running pipeline (harvest={'yes' if harvest else 'no'}, n={harvest_n})...")
     metrics.update(run_pipeline(root, corpus, index, harvest, harvest_n))
+    hb(f"pipeline: {metrics.get('panels_indexed',0)} panels, {metrics.get('leads_orb_confirmed',0)} confirmed leads")
 
     cb = cost_benefit(
         CostInputs(gpu_hours=gpu_hours, storage_tb_months=5.0, llm_api_calls=metrics.get("llm_calls", 0)),
@@ -71,9 +81,12 @@ def collect_metrics(root: Path, corpus: str, index: str, harvest: str | None, ha
 def loop(root: Path, args: argparse.Namespace) -> None:
     spec = SpecState()
     backend = get_backend()
-    runs_dir = root / "services" / "image-forensics" / "runs"
+    # Persist to Drive when RI_RUNS_DIR is set (survives Colab session death), else local.
+    runs_dir = Path(os.environ.get("RI_RUNS_DIR") or (root / "services" / "image-forensics" / "runs"))
     runs_dir.mkdir(parents=True, exist_ok=True)
     log = runs_dir / "autonomy_log.jsonl"
+    hb(f"loop starting. runs_dir={runs_dir} | LLM backend={backend.name} (available={backend.available()})")
+    hb(f"budget={args.budget_hours}h, max_iters={args.max_iterations}, patience={args.patience}")
 
     best_met = -1
     stale = 0
@@ -81,6 +94,7 @@ def loop(root: Path, args: argparse.Namespace) -> None:
 
     for it in range(args.max_iterations):
         gpu_hours = (time.time() - t_start) / 3600.0
+        hb(f"===== iteration {it} (elapsed {gpu_hours:.2f}h) =====")
         metrics = collect_metrics(root, args.corpus, args.index, args.harvest, args.harvest_n, gpu_hours)
         status = spec.status(metrics)
         met_count = sum(1 for _, ok in status if ok)
@@ -98,6 +112,8 @@ def loop(root: Path, args: argparse.Namespace) -> None:
         (runs_dir / "STATUS.md").write_text(
             spec.report(metrics) + "\n\n" + render_cost_benefit(metrics["_cost_benefit"])
         )
+        hb(f"milestones met: {met_count}/{len(spec.milestones)} | focus: {entry['focus']} | "
+           f"ROI={metrics.get('roi_ratio')} | wrote STATUS.md + log to {runs_dir}")
 
         # stop conditions
         if spec.complete(metrics):
@@ -129,7 +145,8 @@ def loop(root: Path, args: argparse.Namespace) -> None:
         _sh(root, "git", "add", "-A")
         _sh(root, "git", "commit", "-m", f"autonomy iter {it}: {entry['focus']} ({met_count} met)")
         _sh(root, "git", "pull", "--rebase", "origin", args.branch)
-        _sh(root, "git", "push", "origin", f"HEAD:{args.branch}")
+        rc, out = _sh(root, "git", "push", "origin", f"HEAD:{args.branch}")
+        hb(f"pushed iter {it} to {args.branch}" if rc == 0 else f"push failed: {out.strip()[:160]}")
 
     print(spec.report(collect_metrics(root, args.corpus, args.index, None, 0, (time.time() - t_start) / 3600.0)))
 
