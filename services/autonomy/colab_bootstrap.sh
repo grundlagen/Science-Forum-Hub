@@ -50,12 +50,17 @@ fi
 say "2/6 Clone or update repo (kept ON DRIVE so it persists + avoids re-cloning)"
 # Accept either secret name; empty = try a public (no-token) clone.
 TOKEN="${GITHUB_PAT:-${GITHUB_TOKEN:-}}"
-if [ -n "$TOKEN" ]; then
-  AUTH_URL="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
-else
-  echo "no GITHUB_PAT/GITHUB_TOKEN set — using public (no-token) clone; push will be disabled"
-  AUTH_URL="https://github.com/${REPO}.git"; export NO_PUSH=1
-fi
+# Reject placeholder tokens: 'YOUR_PAT' left in a cell is the #1 cause of the loop
+# silently running STALE Drive code (it can't fetch new fixes or push results).
+case "$TOKEN" in
+  ""|YOUR_PAT|YOUR_TOKEN|YOUR_*|changeme|xxx*|"<"*)
+    echo "WARNING: GITHUB_PAT is unset or a placeholder ('$TOKEN'). The loop will run"
+    echo "the CACHED Drive code and cannot pull fixes or push results. Put a real"
+    echo "fine-grained PAT (contents:write on $REPO) in Colab Secrets (the padlock)."
+    TOKEN=""; AUTH_URL="https://github.com/${REPO}.git"; export NO_PUSH=1 ;;
+  *)
+    AUTH_URL="https://x-access-token:${TOKEN}@github.com/${REPO}.git" ;;
+esac
 # Persist on Drive if writable, else local /content.
 if [ -n "${RI_RUNS_DIR:-}" ]; then REPO_DIR="$(dirname "$RI_RUNS_DIR")/science-forum-hub"; else REPO_DIR="/content/science-forum-hub"; fi
 
@@ -75,17 +80,14 @@ cd "$REPO_DIR" || exit 1
 git remote set-url origin "$AUTH_URL"
 git config user.email "colab-runner@example.org"; git config user.name "colab-runner"
 git fetch origin "$BRANCH" -q && git checkout "$BRANCH" -q
-if ! git pull --rebase origin "$BRANCH" -q; then
-  echo "pull --rebase blocked (dirty working tree from a prior session) — committing any"
-  echo "real progress first, then retrying:"
-  git add -A
-  git commit -q -m "colab: snapshot before pull $(date -u +%FT%TZ)" 2>/dev/null || true
-  git rebase --abort 2>/dev/null || true
-  if ! git pull --rebase origin "$BRANCH" -q; then
-    echo "still blocked — discarding local diffs and re-pulling clean (Drive copy is a"
-    echo "cache, not the source of truth; nothing here was unpushed since the commit above)"
-    git reset --hard "origin/$BRANCH" -q || echo "pull failed — continuing on the local Drive copy"
-  fi
+if [ -n "$TOKEN" ]; then
+  # The Drive clone is a CACHE, not the source of truth — force it to exactly origin
+  # so pushed fixes ALWAYS land (this is what stops the 'fix never takes effect' trap).
+  # Real results persist to RI_RUNS_DIR (Drive), not the repo tree, so this is safe.
+  git reset --hard "origin/$BRANCH" -q || echo "reset failed — continuing on the local Drive copy"
+else
+  git pull --rebase origin "$BRANCH" -q || git reset --hard "origin/$BRANCH" -q || \
+    echo "pull failed (no token) — continuing on the local Drive copy"
 fi
 
 say "3/6 Install dependencies"
