@@ -119,7 +119,9 @@ class OpenRouterBackend(LLMBackend):
     def propose(self, prompt: str) -> EditProposal | None:  # pragma: no cover - network
         import urllib.request
 
-        model = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6")
+        # Default to a strong FREE model (':free' = no credits needed, ~20rpm/50-day).
+        # Override with OPENROUTER_MODEL=anthropic/claude-... once you fund the account.
+        model = os.environ.get("OPENROUTER_MODEL", "qwen/qwen3-coder:free")
         body = json.dumps({
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
@@ -172,7 +174,8 @@ class GeminiBackend(LLMBackend):
         from google import genai
 
         client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
-        model = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro")
+        # Flash is on the FREE tier (no card); Pro went paid Apr 2026 -> would 402/429.
+        model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         resp = client.models.generate_content(model=model, contents=prompt)
         return parse_proposal(getattr(resp, "text", "") or "")
 
@@ -203,6 +206,29 @@ def get_backend() -> LLMBackend:
         if b.available():
             return b
     return LLMBackend()
+
+
+def get_working_backend(log=None) -> tuple[LLMBackend, str]:
+    """Return the first backend that is available AND passes a live smoke test.
+
+    This is the auto-fallback the loop relies on: a 402/expired/rate-limited key on
+    the top-priority backend no longer disables self-edits — we fall through to the
+    next working one (e.g. free Gemini Flash, or an OpenRouter ':free' model, or
+    Colab's built-in ai as a last resort if it happens to answer). Order matches the
+    module docstring's priority. Each candidate costs one tiny probe call."""
+    def _log(m):
+        if log:
+            log(m)
+    for b in (OpenRouterBackend(), GeminiBackend(), ClaudeBackend(), ColabAIBackend()):
+        if not b.available():
+            continue
+        ok, detail = smoke_test_backend(b)
+        _log(f"backend {b.name}: {'OK' if ok else 'unusable'} — {detail}")
+        if ok:
+            return b, detail
+    return (LLMBackend(),
+            "no working LLM backend. FREE options: add GOOGLE_API_KEY (Gemini Flash, "
+            "no card) or OPENROUTER_API_KEY with a ':free' model, in Colab Secrets.")
 
 
 def smoke_test_backend(backend: LLMBackend) -> tuple[bool, str]:

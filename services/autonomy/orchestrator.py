@@ -32,7 +32,7 @@ def hb(msg: str) -> None:
 from milestones import SpecState
 from cost_benefit import CostInputs, BenefitInputs, cost_benefit, render_cost_benefit
 from test_gate import run_gate
-from self_edit import get_backend, apply_and_gate, build_prompt, EditProposal, smoke_test_backend, load_colab_secrets
+from self_edit import get_working_backend, apply_and_gate, build_prompt, EditProposal, load_colab_secrets
 
 
 def _sh(root: Path, *args: str, timeout: int = 3600) -> tuple[int, str]:
@@ -97,27 +97,25 @@ def loop(root: Path, args: argparse.Namespace) -> None:
     if loaded:
         hb(f"loaded secret(s) from Colab userdata: {', '.join(loaded)}")
     spec = SpecState()
-    backend = get_backend()
     # Persist to Drive when RI_RUNS_DIR is set (survives Colab session death), else local.
     runs_dir = Path(os.environ.get("RI_RUNS_DIR") or (root / "services" / "image-forensics" / "runs"))
     runs_dir.mkdir(parents=True, exist_ok=True)
     log = runs_dir / "autonomy_log.jsonl"
-    hb(f"loop starting. runs_dir={runs_dir} | LLM backend={backend.name} (available={backend.available()})")
-    hb(f"budget={args.budget_hours}h, max_iters={args.max_iterations}, patience={args.patience}, python_only={args.python_only}")
-    # Prove the self-edit brain works before relying on it (unless --no-edit).
-    edits_enabled = backend.available() and not args.no_edit
-    if edits_enabled:
-        ok, detail = smoke_test_backend(backend)
-        hb(f"backend smoke test: {'PASS' if ok else 'FAIL'} — {detail}")
-        edits_enabled = ok
-        if not ok:
-            hb("self-edits disabled for this run (backend smoke test failed); metrics/scan still run")
-            if backend.name == "colab-ai":
-                hb("  -> colab-ai is unreliable in Colab background execution. Add "
-                   "OPENROUTER_API_KEY (recommended) or GOOGLE_API_KEY in Colab Secrets "
-                   "(the padlock icon) to enable real self-edits; the scan runs regardless.")
+    # Auto-select the first backend that actually WORKS (smoke-tested): a 402/expired
+    # key on the top choice falls through to free Gemini Flash / OpenRouter ':free'
+    # rather than silently disabling self-edits.
+    if args.no_edit:
+        from self_edit import LLMBackend
+        backend, bk_detail, edits_enabled = LLMBackend(), "self-edits disabled (--no-edit)", False
     else:
-        hb("self-edits OFF (no backend or --no-edit) — running metrics/scan/report only")
+        backend, bk_detail = get_working_backend(log=hb)
+        edits_enabled = backend.available()
+    hb(f"loop starting. runs_dir={runs_dir} | LLM backend={backend.name} (edits={'on' if edits_enabled else 'off'})")
+    hb(f"budget={args.budget_hours}h, max_iters={args.max_iterations}, patience={args.patience}, python_only={args.python_only}")
+    if edits_enabled:
+        hb(f"self-edit backend ready: {backend.name} — {bk_detail}")
+    elif not args.no_edit:
+        hb(f"self-edits OFF ({bk_detail}); metrics/scan still run.")
 
     best_met = -1
     stale = 0
