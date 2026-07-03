@@ -32,7 +32,7 @@ def hb(msg: str) -> None:
 from milestones import SpecState
 from cost_benefit import CostInputs, BenefitInputs, cost_benefit, render_cost_benefit
 from test_gate import run_gate
-from self_edit import get_backend, apply_and_gate, build_prompt, EditProposal
+from self_edit import get_backend, apply_and_gate, build_prompt, EditProposal, smoke_test_backend
 
 
 def _sh(root: Path, *args: str, timeout: int = 3600) -> tuple[int, str]:
@@ -87,7 +87,17 @@ def loop(root: Path, args: argparse.Namespace) -> None:
     runs_dir.mkdir(parents=True, exist_ok=True)
     log = runs_dir / "autonomy_log.jsonl"
     hb(f"loop starting. runs_dir={runs_dir} | LLM backend={backend.name} (available={backend.available()})")
-    hb(f"budget={args.budget_hours}h, max_iters={args.max_iterations}, patience={args.patience}")
+    hb(f"budget={args.budget_hours}h, max_iters={args.max_iterations}, patience={args.patience}, python_only={args.python_only}")
+    # Prove the self-edit brain works before relying on it (unless --no-edit).
+    edits_enabled = backend.available() and not args.no_edit
+    if edits_enabled:
+        ok, detail = smoke_test_backend(backend)
+        hb(f"backend smoke test: {'PASS' if ok else 'FAIL'} — {detail}")
+        edits_enabled = ok
+        if not ok:
+            hb("self-edits disabled for this run (backend smoke test failed); metrics/scan still run")
+    else:
+        hb("self-edits OFF (no backend or --no-edit) — running metrics/scan/report only")
 
     best_met = -1
     stale = 0
@@ -130,10 +140,14 @@ def loop(root: Path, args: argparse.Namespace) -> None:
             break
 
         # attempt one guarded self-edit toward the current milestone
-        if backend.available() and current is not None:
+        if edits_enabled and current is not None:
             digest = _repo_digest(root)
             prompt = build_prompt(current.description, entry["metrics"], digest)
-            proposal = backend.propose(prompt)
+            try:
+                proposal = backend.propose(prompt)
+            except Exception as e:  # noqa: BLE001
+                proposal = None
+                hb(f"backend.propose failed this iter: {e}")
             if isinstance(proposal, EditProposal):
                 hb(f"LLM proposed an edit to {len(proposal.files)} file(s); gating...")
                 kept, result = apply_and_gate(root, proposal, python_only=args.python_only)
@@ -141,15 +155,20 @@ def loop(root: Path, args: argparse.Namespace) -> None:
                 entry["edit_kept"] = kept
                 if not kept:
                     entry["edit_failures"] = result.failures[:5]
-        else:
-            print(f"[iter {it}] no LLM backend configured — running metrics/report only")
+            else:
+                hb("no usable proposal this iteration")
 
-        # push results so the human (or a watching editor) can see progress
+        # Commit locally always (durable in the Drive repo). Push is OPTIONAL: a broken
+        # GitHub connection must NOT stop the loop — results already persist to Drive.
         _sh(root, "git", "add", "-A")
         _sh(root, "git", "commit", "-m", f"autonomy iter {it}: {entry['focus']} ({met_count} met)")
-        _sh(root, "git", "pull", "--rebase", "origin", args.branch)
-        rc, out = _sh(root, "git", "push", "origin", f"HEAD:{args.branch}")
-        hb(f"pushed iter {it} to {args.branch}" if rc == 0 else f"push failed: {out.strip()[:160]}")
+        if args.no_push:
+            hb(f"iter {it} committed locally (push disabled); results in {runs_dir}")
+        else:
+            _sh(root, "git", "pull", "--rebase", "origin", args.branch)
+            rc, out = _sh(root, "git", "push", "origin", f"HEAD:{args.branch}")
+            hb(f"pushed iter {it} to {args.branch}" if rc == 0
+               else f"push failed (continuing; results are on Drive): {out.strip()[:160]}")
 
     print(spec.report(collect_metrics(root, args.corpus, args.index, None, 0,
                                        (time.time() - t_start) / 3600.0, args.python_only)))
@@ -177,6 +196,9 @@ def main() -> int:
     ap.add_argument("--patience", type=int, default=5)
     ap.add_argument("--python-only", action="store_true",
                     help="skip the TS toolchain (pnpm/typecheck); run + self-edit the Python scan code only")
+    ap.add_argument("--no-edit", action="store_true", help="run metrics/scan/report only; no self-edits")
+    ap.add_argument("--no-push", action="store_true",
+                    help="never push to GitHub; commit locally + persist to Drive only (use when GitHub is unavailable)")
     args = ap.parse_args()
     loop(Path(__file__).resolve().parents[2], args)
     return 0

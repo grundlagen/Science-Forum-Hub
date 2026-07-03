@@ -39,23 +39,33 @@ else
 fi
 
 say "2/6 Clone or update repo (kept ON DRIVE so it persists + avoids re-cloning)"
-# If Drive is writable, keep the repo there so a new session reuses it (no re-clone,
-# no re-install). Otherwise fall back to a local /content clone.
-if [ -n "${RI_RUNS_DIR:-}" ]; then
-  REPO_DIR="$(dirname "$RI_RUNS_DIR")/science-forum-hub"
+# Accept either secret name; empty = try a public (no-token) clone.
+TOKEN="${GITHUB_PAT:-${GITHUB_TOKEN:-}}"
+if [ -n "$TOKEN" ]; then
+  AUTH_URL="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
 else
-  REPO_DIR="/content/science-forum-hub"
+  echo "no GITHUB_PAT/GITHUB_TOKEN set — using public (no-token) clone; push will be disabled"
+  AUTH_URL="https://github.com/${REPO}.git"; export NO_PUSH=1
 fi
+# Persist on Drive if writable, else local /content.
+if [ -n "${RI_RUNS_DIR:-}" ]; then REPO_DIR="$(dirname "$RI_RUNS_DIR")/science-forum-hub"; else REPO_DIR="/content/science-forum-hub"; fi
+
 if [ ! -d "$REPO_DIR/.git" ]; then
   echo "cloning into $REPO_DIR ..."
-  git clone --branch "$BRANCH" "https://x-access-token:${GITHUB_PAT}@github.com/${REPO}.git" "$REPO_DIR"
+  if ! git clone --branch "$BRANCH" "$AUTH_URL" "$REPO_DIR"; then
+    echo "CLONE FAILED. Most common causes:"
+    echo "  - fine-grained PAT: must grant access to the '${REPO%%/*}' org AND select this repo (org may need to approve it)"
+    echo "  - classic PAT: needs the 'repo' scope"
+    echo "  - or make the repo public and re-run with no token"
+    exit 1
+  fi
 else
   echo "reusing existing repo at $REPO_DIR (injected from Drive)"
 fi
 cd "$REPO_DIR" || exit 1
-git remote set-url origin "https://x-access-token:${GITHUB_PAT}@github.com/${REPO}.git"
+git remote set-url origin "$AUTH_URL"
 git config user.email "colab-runner@example.org"; git config user.name "colab-runner"
-git fetch origin "$BRANCH" -q && git checkout "$BRANCH" -q && git pull --rebase origin "$BRANCH" || echo "pull had conflicts — continuing on local state"
+git fetch origin "$BRANCH" -q && git checkout "$BRANCH" -q && git pull --rebase origin "$BRANCH" || echo "fetch/pull failed — continuing on the local Drive copy"
 
 say "3/6 Install dependencies"
 pip -q install opencv-python-headless imagehash pillow numpy faiss-cpu torch torchvision >/dev/null 2>&1
@@ -78,10 +88,12 @@ LOG="${RI_RUNS_DIR:-services/image-forensics/runs}/console.log"
 mkdir -p "$(dirname "$LOG")"
 echo "Live log: $LOG   (STATUS.md updates every iteration)"
 cd services/autonomy
-PYFLAG=""; [ "${PYTHON_ONLY:-0}" = "1" ] && PYFLAG="--python-only"
+FLAGS=""; [ "${PYTHON_ONLY:-0}" = "1" ] && FLAGS="$FLAGS --python-only"
+[ "${NO_PUSH:-0}" = "1" ] && FLAGS="$FLAGS --no-push"
+[ "${NO_EDIT:-0}" = "1" ] && FLAGS="$FLAGS --no-edit"
 # -u = unbuffered so Colab shows output live; tee = also persist to Drive.
 stdbuf -oL -eL python -u orchestrator.py \
-  --branch "$BRANCH" $PYFLAG \
+  --branch "$BRANCH" $FLAGS \
   --harvest "$HARVEST_QUERY" --harvest-n "$HARVEST_N" \
   --budget-hours "$BUDGET_HOURS" --max-iterations 50 --patience 5 \
   2>&1 | tee -a "$LOG"

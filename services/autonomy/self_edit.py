@@ -68,6 +68,42 @@ class LLMBackend:
         raise NotImplementedError
 
 
+class OpenRouterBackend(LLMBackend):
+    """OpenRouter (OpenAI-compatible) — one key, any top coding model. Recommended for
+    self-editing: set OPENROUTER_MODEL to a frontier coder. Good picks (July 2026):
+      anthropic/claude-opus-4.8, openai/gpt-5.5, google/gemini-3-pro   (frontier)
+      anthropic/claude-sonnet-4.6, deepseek/deepseek-v4                 (cheap+good)
+      qwen/qwen3-coder, moonshotai/kimi-k2.6                            (open-weight)
+    """
+
+    name = "openrouter"
+    endpoint = "https://openrouter.ai/api/v1/chat/completions"
+
+    def available(self) -> bool:
+        return bool(os.environ.get("OPENROUTER_API_KEY"))
+
+    def propose(self, prompt: str) -> EditProposal | None:  # pragma: no cover - network
+        import urllib.request
+
+        model = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6")
+        body = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 8000,
+            "temperature": 0.2,
+        }).encode()
+        req = urllib.request.Request(
+            self.endpoint, data=body,
+            headers={"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
+                     "Content-Type": "application/json",
+                     "X-Title": "research-integrity-autonomy"},
+        )
+        with urllib.request.urlopen(req, timeout=180) as r:
+            data = json.loads(r.read())
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        return parse_proposal(text)
+
+
 class ColabAIBackend(LLMBackend):
     """Colab's built-in model via `from google.colab import ai` — no API key needed.
     This is the default self-edit brain on Colab."""
@@ -123,11 +159,30 @@ class ClaudeBackend(LLMBackend):
 
 
 def get_backend() -> LLMBackend:
-    # Prefer Colab's built-in AI (free, no key), then keyed backends.
-    for b in (ColabAIBackend(), GeminiBackend(), ClaudeBackend()):
+    # Prefer OpenRouter (any top coding model via one key) > direct keyed APIs >
+    # Colab's built-in AI (free fallback).
+    for b in (OpenRouterBackend(), GeminiBackend(), ClaudeBackend(), ColabAIBackend()):
         if b.available():
             return b
     return LLMBackend()
+
+
+def smoke_test_backend(backend: LLMBackend) -> tuple[bool, str]:
+    """Confirm the LLM backend actually returns a parseable edit proposal before the
+    loop relies on it. Returns (ok, detail)."""
+    if not backend.available():
+        return False, f"backend '{backend.name}' not available"
+    probe = (
+        'Reply with ONLY this JSON and nothing else: '
+        '{"rationale":"smoke test","files":[{"path":"services/autonomy/_smoke.py","content":"# ok\\n"}]}'
+    )
+    try:
+        prop = backend.propose(probe)
+    except Exception as e:  # noqa: BLE001
+        return False, f"{backend.name} raised: {e}"
+    if prop is None:
+        return False, f"{backend.name} returned no parseable JSON proposal"
+    return True, f"{backend.name} OK ({len(prop.files)} file(s) parsed from a probe)"
 
 
 def _git(root: Path, *args: str) -> tuple[int, str]:
