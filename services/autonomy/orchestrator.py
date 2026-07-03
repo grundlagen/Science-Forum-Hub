@@ -32,7 +32,7 @@ def hb(msg: str) -> None:
 from milestones import SpecState
 from cost_benefit import CostInputs, BenefitInputs, cost_benefit, render_cost_benefit
 from test_gate import run_gate
-from self_edit import get_backend, apply_and_gate, build_prompt, EditProposal, smoke_test_backend
+from self_edit import get_backend, apply_and_gate, build_prompt, EditProposal, smoke_test_backend, load_colab_secrets
 
 
 def _sh(root: Path, *args: str, timeout: int = 3600) -> tuple[int, str]:
@@ -80,6 +80,9 @@ def collect_metrics(root: Path, corpus: str, index: str, harvest: str | None, ha
 
 
 def loop(root: Path, args: argparse.Namespace) -> None:
+    loaded = load_colab_secrets()
+    if loaded:
+        hb(f"loaded secret(s) from Colab userdata: {', '.join(loaded)}")
     spec = SpecState()
     backend = get_backend()
     # Persist to Drive when RI_RUNS_DIR is set (survives Colab session death), else local.

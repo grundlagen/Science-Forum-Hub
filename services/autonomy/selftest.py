@@ -79,7 +79,14 @@ finally:
     ff_path.write_text(original)  # restore
 
 # --- self-edit plumbing (parsing + path allowlist), no LLM/network ---
-from self_edit import parse_proposal, path_allowed  # noqa: E402
+from self_edit import parse_proposal, path_allowed, load_colab_secrets  # noqa: E402
+
+# Outside Colab, google.colab.userdata doesn't exist — must no-op cleanly, never raise.
+try:
+    loaded = load_colab_secrets()
+    check("load_colab_secrets no-ops safely outside Colab", loaded == [])
+except Exception as e:  # noqa: BLE001
+    check(f"load_colab_secrets raised outside Colab: {e}", False)
 
 good = parse_proposal('noise before {"rationale":"x","files":[{"path":"services/autonomy/foo.py","content":"print(1)"}]} after')
 check("parse_proposal extracts JSON from noisy text", good is not None and len(good.files) == 1)

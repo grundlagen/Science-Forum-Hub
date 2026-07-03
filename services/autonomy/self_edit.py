@@ -1,12 +1,19 @@
 """
-Guarded self-editing. An LLM (Gemini via the user's Google AI key, or Claude) proposes
-a code change aimed at the current milestone; we apply it on a scratch commit, run the
-FULL gate, and keep it ONLY if the gate stays green. Otherwise we hard-revert. The LLM
-never has unmediated write access — the test gate is the arbiter, not the model.
+Guarded self-editing. An LLM proposes a code change aimed at the current milestone; we
+apply it on a scratch commit, run the FULL gate, and keep it ONLY if the gate stays
+green. Otherwise we hard-revert. The LLM never has unmediated write access — the test
+gate is the arbiter, not the model.
 
-Backends are pluggable and unavailable until a key is configured, so the module imports
-and self-tests offline. Wire a backend by setting GOOGLE_API_KEY (Gemini) or
-ANTHROPIC_API_KEY (Claude).
+Backend priority: OpenRouter (one key, any top coding model — RECOMMENDED) > direct
+Gemini key (new `google-genai` SDK; the old `google-generativeai` package is EOL, do
+not use it) > direct Claude key > Colab's free built-in `google.colab.ai` as a last
+resort. Backends are pluggable and unavailable until a key is configured, so the
+module imports and self-tests offline.
+
+On Colab, call `load_colab_secrets()` once at startup to pull keys out of the Secrets
+manager (the padlock icon) into os.environ, instead of hand-typing/hardcoding them in a
+notebook cell — that hand-typing is exactly what produced the 'YOUR_PAT' placeholder
+bug and the missing-GOOGLE_API_KEY crash seen in practice.
 """
 from __future__ import annotations
 
@@ -18,6 +25,33 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from test_gate import run_gate, GateResult
+
+# Secrets we know how to pull from Colab's userdata manager if not already in os.environ.
+COLAB_SECRET_NAMES = (
+    "GITHUB_PAT", "GITHUB_TOKEN", "OPENROUTER_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY",
+)
+
+
+def load_colab_secrets() -> list[str]:
+    """Copy any of COLAB_SECRET_NAMES from google.colab.userdata into os.environ.
+    Safe to call outside Colab (no-ops) or when a secret is absent (skips it). Returns
+    the names actually loaded, for a one-line startup log."""
+    loaded: list[str] = []
+    try:
+        from google.colab import userdata
+    except Exception:
+        return loaded
+    for name in COLAB_SECRET_NAMES:
+        if os.environ.get(name):
+            continue
+        try:
+            val = userdata.get(name)
+        except Exception:
+            continue  # not set, or notebook access not granted for this secret
+        if val:
+            os.environ[name] = val
+            loaded.append(name)
+    return loaded
 
 # Self-edits may only touch these path prefixes. In python_only mode this is further
 # narrowed to .py files, so the loop can improve the scan code without a working TS
@@ -125,17 +159,21 @@ class ColabAIBackend(LLMBackend):
 
 
 class GeminiBackend(LLMBackend):
+    """Uses the current `google-genai` SDK (`pip install google-genai`). The OLDER
+    `google-generativeai` package is END OF LIFE per Google's own deprecation notice —
+    never install or import it; it will not receive fixes."""
+
     name = "gemini"
 
     def available(self) -> bool:
         return bool(os.environ.get("GOOGLE_API_KEY"))
 
     def propose(self, prompt: str) -> EditProposal | None:  # pragma: no cover - network
-        import google.generativeai as genai
+        from google import genai
 
-        genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-        model = genai.GenerativeModel(os.environ.get("GEMINI_MODEL", "gemini-1.5-pro"))
-        resp = model.generate_content(prompt)
+        client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+        model = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro")
+        resp = client.models.generate_content(model=model, contents=prompt)
         return parse_proposal(getattr(resp, "text", "") or "")
 
 

@@ -3,16 +3,22 @@
 # everything, verifies output persistence + GPU + network LOUDLY, then launches the
 # autonomous deep scan with output streamed to screen AND saved to Drive.
 #
-# Usage in a Colab cell:
-#   !bash <(curl -sSL https://raw.githubusercontent.com/grundlagen/science-forum-hub/claude/building-thoughts-r6ghup/services/autonomy/colab_bootstrap.sh)
-# or, if already cloned:  !bash services/autonomy/colab_bootstrap.sh
+# DO NOT launch this via `curl raw.githubusercontent.com | bash` for a private repo —
+# GitHub's raw content endpoint needs its OWN auth and a URL-embedded PAT does not work
+# there (you'll get "404: command not found" as bash tries to execute the 404 body).
+# Always CLONE FIRST with git (which does accept a URL-embedded PAT), then run this
+# script from the local checkout:
+#   !git clone --branch claude/building-thoughts-r6ghup \
+#       https://x-access-token:$GITHUB_PAT@github.com/grundlagen/science-forum-hub.git
+#   !bash science-forum-hub/services/autonomy/colab_bootstrap.sh
+# (See docs/research-integrity/AUTONOMOUS-SPEC.md for the full, copy-paste Colab cells.)
 #
-# Required env (set BEFORE running):
-#   GITHUB_PAT   fine-grained token, contents:write on this repo ONLY
-#   GOOGLE_API_KEY   (optional) enables the Gemini self-edit backend
+# Required env (set BEFORE running, e.g. via google.colab.userdata):
+#   GITHUB_PAT or GITHUB_TOKEN   fine-grained token, contents:write on this repo ONLY
+#   OPENROUTER_API_KEY   (recommended) enables real self-edits via any top coding model
 # Optional env:
 #   BRANCH (default claude/building-thoughts-r6ghup)
-#   HARVEST_QUERY, HARVEST_N, BUDGET_HOURS
+#   HARVEST_QUERY, HARVEST_N, BUDGET_HOURS, PYTHON_ONLY, NO_PUSH, NO_EDIT, BACKGROUND
 set -uo pipefail
 
 BRANCH="${BRANCH:-claude/building-thoughts-r6ghup}"
@@ -65,11 +71,26 @@ fi
 cd "$REPO_DIR" || exit 1
 git remote set-url origin "$AUTH_URL"
 git config user.email "colab-runner@example.org"; git config user.name "colab-runner"
-git fetch origin "$BRANCH" -q && git checkout "$BRANCH" -q && git pull --rebase origin "$BRANCH" || echo "fetch/pull failed — continuing on the local Drive copy"
+git fetch origin "$BRANCH" -q && git checkout "$BRANCH" -q
+if ! git pull --rebase origin "$BRANCH" -q; then
+  echo "pull --rebase blocked (dirty working tree from a prior session) — committing any"
+  echo "real progress first, then retrying:"
+  git add -A
+  git commit -q -m "colab: snapshot before pull $(date -u +%FT%TZ)" 2>/dev/null || true
+  git rebase --abort 2>/dev/null || true
+  if ! git pull --rebase origin "$BRANCH" -q; then
+    echo "still blocked — discarding local diffs and re-pulling clean (Drive copy is a"
+    echo "cache, not the source of truth; nothing here was unpushed since the commit above)"
+    git reset --hard "origin/$BRANCH" -q || echo "pull failed — continuing on the local Drive copy"
+  fi
+fi
 
 say "3/6 Install dependencies"
 pip -q install opencv-python-headless imagehash pillow numpy faiss-cpu torch torchvision >/dev/null 2>&1
-[ -n "${GOOGLE_API_KEY:-}" ] && pip -q install google-generativeai >/dev/null 2>&1
+# NOTE: `google-generativeai` is EOL (Colab itself prints a deprecation notice for it).
+# The self-edit backends use OPENROUTER_API_KEY (recommended, one key/any model) or the
+# new `google-genai` package — see self_edit.py. Do not hand-install google-generativeai.
+[ -n "${GOOGLE_API_KEY:-}" ] && pip -q install google-genai >/dev/null 2>&1
 if [ "${PYTHON_ONLY:-0}" = "1" ]; then
   echo "PYTHON_ONLY=1 -> skipping Node/pnpm (the part that was struggling). The loop will"
   echo "run + self-edit the Python scan code, gated by the image benchmarks + invariant guard."
@@ -83,17 +104,31 @@ python -u services/autonomy/preflight.py --runs-dir "${RI_RUNS_DIR:-}" || { echo
 say "5/6 Offline sanity (deterministic logic)"
 python -u services/autonomy/selftest.py || { echo "SELFTEST FAILED — stopping."; exit 1; }
 
-say "6/6 Launch autonomous deep scan (streaming + saving to Drive)"
-LOG="${RI_RUNS_DIR:-services/image-forensics/runs}/console.log"
+say "6/6 Launch autonomous deep scan"
+LOG="${RI_RUNS_DIR:-$PWD/services/image-forensics/runs}/console.log"
 mkdir -p "$(dirname "$LOG")"
-echo "Live log: $LOG   (STATUS.md updates every iteration)"
 cd services/autonomy
 FLAGS=""; [ "${PYTHON_ONLY:-0}" = "1" ] && FLAGS="$FLAGS --python-only"
 [ "${NO_PUSH:-0}" = "1" ] && FLAGS="$FLAGS --no-push"
 [ "${NO_EDIT:-0}" = "1" ] && FLAGS="$FLAGS --no-edit"
-# -u = unbuffered so Colab shows output live; tee = also persist to Drive.
-stdbuf -oL -eL python -u orchestrator.py \
-  --branch "$BRANCH" $FLAGS \
-  --harvest "$HARVEST_QUERY" --harvest-n "$HARVEST_N" \
-  --budget-hours "$BUDGET_HOURS" --max-iterations 50 --patience 5 \
-  2>&1 | tee -a "$LOG"
+
+if [ "${BACKGROUND:-0}" = "1" ]; then
+  # Detached: the cell returns immediately. No background THREAD calling any Colab AI
+  # hook (that crashes per Colab's own runtime) — this is a separate OS PROCESS, which
+  # is safe. Check progress any time with a fresh, cheap cell (see AUTONOMOUS-SPEC.md
+  # "check status" cell) instead of hand-rolling a log-tailing thread.
+  nohup stdbuf -oL -eL python -u orchestrator.py \
+    --branch "$BRANCH" $FLAGS \
+    --harvest "$HARVEST_QUERY" --harvest-n "$HARVEST_N" \
+    --budget-hours "$BUDGET_HOURS" --max-iterations 50 --patience 5 \
+    > "$LOG" 2>&1 &
+  echo "Launched in background, PID $!. Live log: $LOG"
+  echo "Re-run a status cell any time: !tail -n 60 $LOG"
+else
+  echo "Live log: $LOG   (STATUS.md updates every iteration; this cell BLOCKS until the run ends)"
+  stdbuf -oL -eL python -u orchestrator.py \
+    --branch "$BRANCH" $FLAGS \
+    --harvest "$HARVEST_QUERY" --harvest-n "$HARVEST_N" \
+    --budget-hours "$BUDGET_HOURS" --max-iterations 50 --patience 5 \
+    2>&1 | tee -a "$LOG"
+fi

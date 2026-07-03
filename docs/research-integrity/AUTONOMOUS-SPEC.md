@@ -61,68 +61,95 @@ Transparent, conservative EV: `cost` (GPU + storage + LLM calls + analyst hours)
 share, grounded in the Dana-Farber $15M/$2.625M exemplar but using a $5M settlement and
 17.5% share). It's a planning aid, not a promise — every assumption is in the output.
 
-## Simplest launch (one cell) — fixes the "no output / Drive didn't save" problem
+## Simplest launch — TWO cells (do not curl a private repo's raw content)
 
+**Why not `curl raw.githubusercontent.com | bash`:** that endpoint needs its own auth,
+and a URL-embedded PAT does not work there for a private repo — you get a 404 body and
+bash tries to *execute* it (`404:: command not found`). `git clone` with a PAT DOES work
+for private repos (it's a different, correct auth path), so always clone first, then run
+the script from the local checkout.
+
+**Before running:** put your secrets in Colab's Secrets manager (padlock icon in the
+left sidebar) — do NOT hardcode them in a cell. Recommended names: `GITHUB_PAT`,
+`OPENROUTER_API_KEY` (the loop reads these automatically at startup via
+`load_colab_secrets()` — no manual `os.environ[...] = 'YOUR_PAT'` copy-paste, which is
+exactly the class of mistake that leaves a literal placeholder string in place).
+
+**Cell 1 — mount Drive, clone, install, preflight, launch in the BACKGROUND:**
 ```python
-from google.colab import drive; drive.mount('/content/drive')   # do this FIRST
+from google.colab import drive, userdata
+drive.mount('/content/drive')
 import os
-os.environ['GITHUB_PAT']     = 'YOUR_FINE_GRAINED_PAT'   # contents:write on this repo only
-os.environ['GOOGLE_API_KEY'] = 'YOUR_GEMINI_KEY'         # optional: enables self-edits
-!bash <(curl -sSL https://raw.githubusercontent.com/grundlagen/science-forum-hub/claude/building-thoughts-r6ghup/services/autonomy/colab_bootstrap.sh)
-```
+for k in ("GITHUB_PAT", "OPENROUTER_API_KEY"):
+    try: os.environ[k] = userdata.get(k)
+    except Exception: pass
 
-`colab_bootstrap.sh` does everything and is LOUD about it: it round-trips a probe file
-to prove Drive is writable, checks GPU/deps/git/network, runs the offline selftest, then
-launches the deep scan with `python -u … | tee` so output **streams to the cell AND
-saves to Drive**. If Drive isn't writable or the network is down, it says so and stops
-instead of running silently.
+pat = os.environ.get("GITHUB_PAT", "")
+repo_dir = "/content/drive/MyDrive/science-forum-hub"
+if not os.path.isdir(repo_dir + "/.git"):
+    !git clone --branch claude/building-thoughts-r6ghup \
+        https://x-access-token:{pat}@github.com/grundlagen/science-forum-hub.git {repo_dir}
+%cd {repo_dir}
+os.environ["PYTHON_ONLY"] = "1"   # skip Node/pnpm if it's been flaky; drop this once pnpm is solid
+os.environ["BACKGROUND"] = "1"    # cell returns immediately; NO hand-rolled background thread needed
+!bash services/autonomy/colab_bootstrap.sh
+```
+This is LOUD by design: `preflight.py` round-trips a probe file to prove Drive is
+writable, checks GPU/deps/git/network, and **stops with a clear reason** instead of
+running silently if anything critical is broken. `BACKGROUND=1` launches the loop as a
+detached OS process (not a Python thread — Colab's own `google.colab.ai` hooks are
+documented to crash inside background threads, so don't hand-write one; a separate
+process has no such problem) and returns the cell immediately with a PID.
+
+**Cell 2 — check status any time (re-run this cell whenever you want an update, instead
+of a supervisor thread):**
+```python
+!tail -n 60 /content/drive/MyDrive/Research_Integrity_Runs/console.log
+print("\n" + "="*60)
+!cat /content/drive/MyDrive/Research_Integrity_Runs/STATUS.md
+```
 
 Two things that caused "no output / nothing saved" before, now handled:
 - **Output buffering** — the loop prints timestamped heartbeats each phase, and the
-  launcher forces unbuffered output (`python -u`, `stdbuf`), so you see live progress.
+  launcher forces unbuffered output (`python -u`, `stdbuf`).
 - **Drive persistence** — `RI_RUNS_DIR` points at `/content/drive/MyDrive/
-  Research_Integrity_Runs`; `STATUS.md`, `autonomy_log.jsonl`, and `console.log` are
-  written there every iteration, so they survive a session reset. Run
-  `python services/autonomy/preflight.py` alone to just health-check.
+  Research_Integrity_Runs`; `STATUS.md`, `autonomy_log.jsonl`, and `console.log` persist
+  there every iteration, and the repo itself lives on Drive so a new session **reuses
+  it** (no re-clone/re-install).
 
 The default deep scan harvests across **NIH + NSF + DoD + DoE** open-access papers
-(`HARVEST_N=3000`, override via env). Watch `Research_Integrity_Runs/STATUS.md`.
+(`HARVEST_N=3000`, override via `os.environ["HARVEST_N"]` before the bootstrap call).
 
-## Colab Pro runbook (manual, step by step)
+## Self-edit backend — what actually works, and what to avoid
 
+**Do NOT hand-write a cell using `google.generativeai`.** Colab's own runtime prints a
+deprecation notice for it ("All support... has ended"); it is fully end-of-life. And do
+NOT hand-roll a background thread that calls `google.colab.ai` — those hooks are not
+safe to call from a background thread and will crash. Both mistakes are already fixed in
+`self_edit.py` / `colab_bootstrap.sh`; you should never need to write either by hand.
+
+**Recommended: OpenRouter.** One key (`OPENROUTER_API_KEY`, which you already have in
+Secrets) reaches any top coding model — no deprecated SDK, no thread issues. Pick the
+model with `os.environ['OPENROUTER_MODEL']` before launch (current strong picks, July
+2026): `anthropic/claude-opus-4.8` or `openai/gpt-5.5` for depth, `anthropic/claude-sonnet-4.6`
+or `deepseek/deepseek-v4` for cheap-and-good, `qwen/qwen3-coder` for open-weight.
+Default if unset: `anthropic/claude-sonnet-4.6`.
+
+**Verify the backend works before trusting it:** the orchestrator runs
+`smoke_test_backend()` at startup and prints `PASS`/`FAIL` — if you see `FAIL`, self-edits
+are automatically disabled for that run (metrics/scan still proceed), so a broken key
+never silently wastes the whole run. You can also check standalone:
 ```python
-# 1. clone + deps (Colab Pro GPU)
-!nvidia-smi -L
-!git clone --branch claude/building-thoughts-r6ghup https://github.com/grundlagen/science-forum-hub.git
-%cd science-forum-hub
-!npm i -g pnpm && pnpm install
-!pip -q install opencv-python-headless imagehash pillow numpy faiss-cpu torch torchvision
-!pip -q install google-generativeai   # for the Gemini self-edit backend
-
-# 2. persist the corpus/index on your 5TB Drive so sessions resume
-from google.colab import drive; drive.mount('/content/drive')
-!mkdir -p /content/drive/MyDrive/Research_Integrity_Runs/corpus
-!ln -sfn /content/drive/MyDrive/Research_Integrity_Runs/corpus services/image-forensics/corpus
-
-# 3. keys (least privilege; never paste in chat) + git push identity
-import os; os.environ['GOOGLE_API_KEY'] = 'YOUR_GEMINI_KEY'
-!git config user.email you@example.org && git config user.name colab-runner
-from getpass import getpass; tok = getpass('GitHub PAT (contents:write only): ')
-!git remote set-url origin https://x-access-token:{tok}@github.com/grundlagen/science-forum-hub.git
-
-# 4. sanity: the deterministic logic passes offline
-!python services/autonomy/selftest.py
-
-# 5. launch the autonomous loop (self-edits ON because GOOGLE_API_KEY is set)
-!cd services/autonomy && python orchestrator.py \
-    --harvest 'GRANT_AGENCY:"NIH" AND OPEN_ACCESS:y' --harvest-n 2000 \
-    --budget-hours 8 --max-iterations 50 --patience 5
+from self_edit import get_backend, smoke_test_backend
+print(smoke_test_backend(get_backend()))
 ```
 
-Watch `services/image-forensics/runs/STATUS.md` on the branch. When it stops on a
-plateau, read the STATUS + log, give it a new direction (edit `milestones.py` targets or
-tell the next run what to focus on), and relaunch — that's the "changes in direction"
-part of the loop.
+If you'd rather use Gemini directly, the current SDK is `google-genai` (`pip install
+google-genai`), NOT `google-generativeai` — `GeminiBackend` already uses the correct one.
+
+When it stops on a plateau, read STATUS.md + the log, give it a new direction (edit
+`milestones.py` targets, change `HARVEST_QUERY`, or swap `OPENROUTER_MODEL`), and
+relaunch — that's the "changes in direction" part of the loop.
 
 ## Guardrails you (and any LLM) must not remove
 - The test gate is the arbiter; keep it in the loop.
