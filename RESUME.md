@@ -155,6 +155,12 @@ New artefacts in /workspace/mega/ + gdrive:sfh/runs/text-run-02/:
 - grim_v2.jsonl (38 attorney-grade), grim_v2_summary.json, grim_v2_survivors.jsonl (29 from spot check)
 - grant_shortlist_R_v2.jsonl (197), grant_shortlist_R_v2_summary.json
 
+## Fix pass v3 (after relator-json-review handoff)
+Other session pushed `claude/relator-json-review-07qt3k` w/ per-detector diagnosis. Applied fixes:
+- **grant_shortlist v3/v4**: added unordered-core-pair dedup (killed 608k dup rows), same-core rejection (multi-PI collab), companion-award numeric-suffix filter, title-strip-multisite-prefix. 218 → 6 survivors. 5 are Study of Osteoporotic Fractures (SOF) multi-site R01s (linked awards missed by regex — need NIH companion-award DB, i.e. entity resolution).
+- **1 genuine lead surviving all filters**: SARS-CoV-2 pair R01AI138709 (Overbaugh Fred Hutch) vs R01AI145687 (Acharya Duke) jac=0.968. Different cores, different institutions, both COVID vaccine antibody research. Worth attorney review — could be pandemic-era boilerplate or actual recycling.
+- Entity-resolution spec written to `docs/research-integrity/ENTITY-RESOLUTION-SPEC.md` — cross-cutting fix for retraction_cluster / benford / grant_shortlist. Highest-leverage remaining work.
+
 ## Session-limit warning (2026-07-04, this session)
 User hit ~100% of weekly Claude usage limit while running this. Next session on a different account: check `/workspace/mega/` on vast box first, results already exist. Do not re-run fetches. Focus on enrichment (novelty-claim extract + budget-period overlap + verbatim-vs-paraphrase) not new pulls.
 
