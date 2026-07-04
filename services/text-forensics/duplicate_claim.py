@@ -33,17 +33,32 @@ def main() -> int:
     # design (Berkeley/Argonne/Livermore DoE contracts, EU framework programmes,
     # NSF facility awards). Not fraud — skip.
     INSTITUTIONAL_PATTERNS = [
-        r"DE-AC0",              # DoE lab master contracts
-        r"AC0[0-9]-[0-9]+CH",   # anywhere in string
-        r"^[0-9]{2}CH[0-9]+$",  # 05CH11231, 06CH11357 (LBNL/ANL bare fragments)
+        # DoE national-lab operating contracts + related facility contracts.
+        r"DE-AC0",              # LBNL/ORNL/PPPL/JLab/BNL/PNNL master ops
+        r"DE-NA[0-9]",          # NNSA lab contracts (LLNL/LANL/Sandia)
+        r"DE-SC[0-9]",           # DoE Office of Science block IDs (facility support)
+        r"DE-FG0",               # DoE grant-in-aid block (facility user)
+        r"AC0[0-9]-[0-9]+CH",   # AC02-05CH11231 style anywhere
+        r"AC0[0-9]-[0-9]+NA",   # AC52-07NA27344 style
+        r"AC0[0-9]-[0-9]+OR",   # ORNL variants
+        r"AC0[0-9]-[0-9]+SF",   # SLAC variants
+        r"^[0-9]{2}CH[0-9]+$",  # 05CH11231, 06CH11357 bare fragments
+        r"^[0-9]{2}NA[0-9]+$",  # 07NA27344 bare
+        r"^[0-9]{2}OR[0-9]+$",  # 00OR22725 bare
+        r"^[0-9]{2}SF[0-9]+$",  # 76SF00515 (SLAC) bare
         r"^-?AC0[0-9]",         # leading-dash artefacts
+        r"^SC[0-9]{5,}$",        # SC0012704 style DoE facility IDs
         r"^FP[0-9]?/",          # EU FP6/FP7
         r"^H2020",              # Horizon 2020
         r"^EU-[0-9]",           # EU generic
         r"^UL1 TR",             # NIH CTSA
         r"^P30 (CA|DK|AG|GM|EY|NS|AI|HL|MH|DA|ES|HD)",
         r"^P40", r"^S10", r"^C06", r"^P51", r"^G20",
-        r"^R24", r"^R25",       # NIH training / infrastructure (not project research)
+        r"^R24", r"^R25",       # NIH training/infra
+        r"^Contract\s+No",      # OpenAlex "Contract No. DE-AC..." blobs
+        # Malformed/partial IDs (trailing dash with nothing after, no digit suffix)
+        r"^DE-[A-Z]{2}[0-9]{2}-?$",   # "DE-FG02-" with nothing after
+        r"^AC[0-9]{2}-[0-9]{2}[A-Z]{2}$",  # trailing regex artefact
     ]
     import re
     inst_re = re.compile("|".join(INSTITUTIONAL_PATTERNS))

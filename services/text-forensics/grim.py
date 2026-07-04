@@ -22,23 +22,103 @@ import argparse, json, math, re, sys, time
 from pathlib import Path
 
 
-# Patterns that catch common "mean X (SD Y), n = Z" formulations.
-# We deliberately over-match; the arithmetic check filters false positives.
-PAT_TRIPLE = re.compile(
+# Strict triple extraction. Common failure modes we explicitly reject:
+#   - "median = 12" giving n=12 (the letter 'n' inside 'median')
+#   - "equation 7" giving n=7 (trailing integer with no sample-size context)
+#   - "exon 19" giving n=19 (biological ordinal, not sample size)
+# Approach: find MEAN anchor first, then in a ±120-char window require an
+# explicit sample-size marker AND reject if a rejection word neighbors the integer.
+
+PAT_MEAN = re.compile(
     r"""(?ix)
-    (?:mean|M|average|\\bavg)\s*[:=]?\s*
-    (?P<mean>-?\d+\.\d{1,3})            # mean with at least 1 decimal
-    \s*
-    (?:                                  # optional SD
-        (?:\(|\[)?\s*
-        (?:sd|std|s\.d\.|standard\s+deviation|\\u00b1|\+/-)\s*[:=]?\s*
-        (?P<sd>-?\d+\.\d{1,3})
-        \s*(?:\)|\])?
-    )?
-    [^\n]{0,80}?                        # up to 80 chars glue
-    (?:n|N|sample\s+size)\s*[:=]?\s*(?P<n>\d{1,5})
+    (?<![A-Za-z])                       # not preceded by another letter
+    (?:mean|average|\bM\b|\bavg\b|\bμ\b)
+    \s*(?:of|was|were|is|are|=|:)?\s*
+    (?P<mean>-?\d+\.\d{1,4})
     """
 )
+
+# Explicit sample-size markers only. "n = <int>", "N = <int>", "sample size <op> <int>",
+# "sample of <int>", "(n = <int>)", "n=<int>". Require word-boundary on n/N.
+PAT_N = re.compile(
+    r"""(?x)
+    (?:
+        \((?:\s*[nN]\s*[:=]\s*(?P<n1>\d{1,5})\s*\))
+      | (?:\b[nN]\s*[:=]\s*(?P<n2>\d{1,5})\b)
+      | (?:\bsample\s+size\s*(?:of|=|:)?\s*(?P<n3>\d{1,5})\b)
+      | (?:\bsample\s+of\s*(?P<n4>\d{1,5})\s+(?:participants|subjects|patients|animals|rats|mice|cells|samples))
+    )
+    """
+)
+
+# Reject rules for the immediate word BEFORE the integer, to avoid median/equation/etc.
+REJECT_LABELS = re.compile(
+    r"\b(median|mode|range|equation|eqn|eq|figure|fig|table|tbl|section|"
+    r"exon|intron|chromosome|chr|page|pp|ref(?:erence)?|"
+    r"chapter|volume|vol|version|ver|revision|"
+    r"row|col|item|question|item|iter|epoch|batch|"
+    r"protocol|study|arm|group|day|month|year|week|hour|min|s(?:econd)?|"
+    r"cohort|panel)\b\s*[:=]?\s*$",
+    re.IGNORECASE,
+)
+
+# SD variants — handle 's.d.', 'S.D.', 'SD', 'std', 'standard deviation', '±', '+/-'.
+PAT_SD = re.compile(
+    r"""(?ix)
+    (?:
+        (?:s\.?\s*d\.?|std\.?|standard\s+deviation|±|\+/-)
+        \s*[:=]?\s*
+        (?P<sd>-?\d+\.\d{1,4})
+    )
+    """
+)
+
+
+def extract_triples(text: str) -> list[tuple[str, str | None, int, str]]:
+    """Return list of (mean_s, sd_s or None, n, quote) triples with strict n context."""
+    out = []
+    for m in PAT_MEAN.finditer(text):
+        mean_s = m.group("mean")
+        span_start = max(0, m.start() - 20)
+        span_end = min(len(text), m.end() + 120)
+        window = text[span_start:span_end]
+        # Check for explicit N marker in this window
+        n_val = None
+        n_span = None
+        for nm in PAT_N.finditer(window):
+            # Reject if word directly before integer is a rejection label
+            candidate = nm.group("n1") or nm.group("n2") or nm.group("n3") or nm.group("n4")
+            if not candidate:
+                continue
+            # Find rejection: 20 chars before the integer inside the window
+            int_start_in_window = nm.start() + nm.group(0).rfind(candidate)
+            pre = window[max(0, int_start_in_window - 20):int_start_in_window]
+            if REJECT_LABELS.search(pre):
+                continue
+            try:
+                n_val = int(candidate)
+                n_span = nm.start()
+            except ValueError:
+                continue
+            break
+        if n_val is None:
+            continue
+        # SD extraction in the same window
+        sd_s = None
+        sdm = PAT_SD.search(window)
+        if sdm:
+            sd_s = sdm.group("sd")
+        else:
+            # Silent-failure guard: if 's.d.' or 'sd' appears in window but we couldn't parse
+            if re.search(r"\bs\.?\s*d\.?|\bsd\b", window, re.IGNORECASE):
+                sd_s = "PARSE_FAIL"
+        quote = text[m.start():min(len(text), m.start() + 200)].replace("\n", " ")[:200]
+        out.append((mean_s, sd_s, n_val, quote))
+    return out
+
+
+# Legacy compatibility for validation script
+PAT_TRIPLE = PAT_MEAN
 
 
 def grim_ok(mean_s: str, n: int) -> tuple[bool, float]:
@@ -96,14 +176,7 @@ def main() -> int:
             text = r.get("text") or ""
             if len(text) < 60:
                 continue
-            for m in PAT_TRIPLE.finditer(text):
-                mean_s = m.group("mean")
-                n_s = m.group("n")
-                sd_s = m.group("sd")
-                try:
-                    n = int(n_s)
-                except (TypeError, ValueError):
-                    continue
+            for mean_s, sd_s, n, quote in extract_triples(text):
                 if n < args.min_n or n > args.max_n:
                     continue
                 n_triples += 1
@@ -120,7 +193,7 @@ def main() -> int:
                     "sd": sd_s,
                     "n": n,
                     "min_gap": round(gap, 6),
-                    "quote": m.group(0)[:180],
+                    "quote": quote[:180],
                 }
                 out_fh.write(json.dumps(lead) + "\n")
                 n_flagged += 1
