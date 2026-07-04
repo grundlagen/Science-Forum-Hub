@@ -24,6 +24,16 @@ from pathlib import Path
 
 BASE = "https://api.openalex.org/works"
 NIH_FUNDER_ID = "F4320337354"
+# US federal-funder OpenAlex IDs (multi-funder scan). NIH+NSF+DoE+DoD+NASA+USDA+VA+CDC.
+US_FEDERAL_FUNDERS = [
+    "F4320337354",  # NIH
+    "F4320306076",  # NSF
+    "F4320337395",  # DoE
+    "F4320337394",  # DoD
+    "F4320306084",  # NASA
+    "F4320306138",  # USDA
+    "F4320306106",  # CDC
+]
 
 
 def reconstruct_abstract(inv: dict | None) -> str | None:
@@ -65,11 +75,18 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=50000)
     ap.add_argument("--per-page", type=int, default=200)
     ap.add_argument("--from-year", type=int, default=2015)
+    ap.add_argument("--funders", default=NIH_FUNDER_ID,
+                    help="Comma-separated OpenAlex funder IDs; use 'us-federal' for the full US-federal set.")
     args = ap.parse_args()
 
     mailto = os.environ.get("OPENALEX_MAILTO", "rupertwmurphy@gmail.com")
     api_key = os.environ.get("OPENALEX_API_KEY", "")
-    filt = f"awards.funder_id:{NIH_FUNDER_ID},from_publication_date:{args.from_year}-01-01,has_abstract:true"
+    if args.funders == "us-federal":
+        funder_ids = US_FEDERAL_FUNDERS
+    else:
+        funder_ids = [f.strip() for f in args.funders.split(",") if f.strip()]
+    funder_expr = "|".join(funder_ids)
+    filt = f"awards.funder_id:{funder_expr},from_publication_date:{args.from_year}-01-01,has_abstract:true"
     cursor = "*"
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -114,8 +131,7 @@ def main() -> int:
                             "award_id": g.get("funder_award_id"),
                         }
                         for g in (w.get("awards") or [])
-                        if (g.get("funder_display_name") or "").lower().startswith("national institutes of health")
-                        or "nih" in (g.get("funder_award_id") or "").upper()
+                        if (g.get("funder_id") or "").rsplit("/", 1)[-1] in funder_ids
                     ],
                 }
                 fh.write(json.dumps(rec) + "\n")
