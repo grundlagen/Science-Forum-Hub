@@ -144,6 +144,20 @@ If loading in a fresh account without that memory dir, this RESUME.md contains e
 
 rupertwmurphy@gmail.com — the OPENALEX_MAILTO / retraction-watch politeness header.
 
+## Session-limit warning (2026-07-04, this session)
+User hit ~100% of weekly Claude usage limit while running this. Next session on a different account: check `/workspace/mega/` on vast box first, results already exist. Do not re-run fetches. Focus on enrichment (novelty-claim extract + budget-period overlap + verbatim-vs-paraphrase) not new pulls.
+
+Key artefacts as of end-session:
+- /workspace/mega/grant_reuse_leads.jsonl (742k pairs from 411k grants MinHash)
+- /workspace/mega/grant_shortlist_R.jsonl (218 R-series cross-PI cross-org jac>=0.95)
+- /workspace/mega/grant_shortlist_KvR.jsonl (1 K-vs-R pair: Schrauben Penn K23 CKD vs Schwartz Cornell R01 hepatic 3D — jac=1.0 different topics)
+- /workspace/mega/grim_leads.jsonl (GRIM arithmetic-consistency)
+- /workspace/mega/reporter/grants.jsonl (411k), passages.jsonl (924k), passage_emb.npz
+- /workspace/text-run-02/leads_verified.jsonl (300 verified paper-abstract pairs from 150k works)
+- /workspace/mega/cluster/{benford,duplicate_claim,retraction_pis,velocity}.json
+
+All pushed to gdrive:sfh/. Local copies in /home/mint/Science-Forum-Hub/runs/text-run-02/.
+
 ## Style expectations
 
 Caveman-terse in updates. Tool-first, result-first. No preamble. No filler. Autonomous mode: kick
