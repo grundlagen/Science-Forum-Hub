@@ -144,6 +144,17 @@ If loading in a fresh account without that memory dir, this RESUME.md contains e
 
 rupertwmurphy@gmail.com — the OPENALEX_MAILTO / retraction-watch politeness header.
 
+## Fix pass v2 (2026-07-04, second session)
+Handoff bugs fixed per `/home/mint/Downloads/grim-fix-handoff.md`:
+1. **GRIM extractor** rewritten — explicit N-marker required, reject median/equation/exon labels, SD parses s.d./±. Old 136 flags → new 38 flags (72% drop, as expected). Spot-check: 136 → 29 survived. Real impossibilities like PMID 29954401 (mean=3.77, n=9 → 3.77 impossible), PMID 38278991 (mean=1.79, SD=3.50, n=44 → impossible).
+2. **duplicate_claim** — extended INSTITUTIONAL_PATTERNS to cover DE-NA*, DE-SC*, DE-FG0*, AC02-05CH*, 76SF*, 00OR*, 07NA*, SLAC/LANL/ORNL fragment IDs. Not rerun this session (needs works.jsonl which was on /dev/shm, lost on reboot).
+3. **grant_shortlist** new tool — 218 → 197 (21 multi-site companion trials rejected). K-vs-R Schrauben/Schwartz pair: not confirmed as valid, flagged for join-key/text-field trace next session.
+4. **benford_triples** new tool — restricts to validated (mean,sd,n) triples via GRIM extractor. Not run yet.
+
+New artefacts in /workspace/mega/ + gdrive:sfh/runs/text-run-02/:
+- grim_v2.jsonl (38 attorney-grade), grim_v2_summary.json, grim_v2_survivors.jsonl (29 from spot check)
+- grant_shortlist_R_v2.jsonl (197), grant_shortlist_R_v2_summary.json
+
 ## Session-limit warning (2026-07-04, this session)
 User hit ~100% of weekly Claude usage limit while running this. Next session on a different account: check `/workspace/mega/` on vast box first, results already exist. Do not re-run fetches. Focus on enrichment (novelty-claim extract + budget-period overlap + verbatim-vs-paraphrase) not new pulls.
 
