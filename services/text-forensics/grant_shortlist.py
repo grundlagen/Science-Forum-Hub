@@ -147,6 +147,10 @@ def main() -> int:
             if args.reject_multisite and (is_multisite(l.get("a_title")) or is_multisite(l.get("b_title"))):
                 n_multisite += 1
                 continue
+            # Same core = same award viewed as two PI-year records; multi-PI collab, not reuse.
+            if l.get("a_core") and l.get("b_core") and l["a_core"] == l["b_core"]:
+                n_companion += 1
+                continue
             if args.reject_companion_awards and is_companion_pair(l.get("a_core"), l.get("b_core")):
                 n_companion += 1
                 continue
