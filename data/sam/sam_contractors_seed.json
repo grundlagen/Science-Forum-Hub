@@ -1,0 +1,886 @@
+[
+  {
+    "entityId": "SEED_lockheedmartin.com",
+    "legalBusinessName": "Lockheedmartin",
+    "domains": [
+      "lockheedmartin.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_raytheon.com",
+    "legalBusinessName": "Raytheon",
+    "domains": [
+      "raytheon.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_northropgrumman.com",
+    "legalBusinessName": "Northropgrumman",
+    "domains": [
+      "northropgrumman.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_boeing.com",
+    "legalBusinessName": "Boeing",
+    "domains": [
+      "boeing.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_generaldynamics.com",
+    "legalBusinessName": "Generaldynamics",
+    "domains": [
+      "generaldynamics.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_l3harris.com",
+    "legalBusinessName": "L3Harris",
+    "domains": [
+      "l3harris.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_gd.com",
+    "legalBusinessName": "Gd",
+    "domains": [
+      "gd.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_gd-ms.com",
+    "legalBusinessName": "Gd-Ms",
+    "domains": [
+      "gd-ms.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_gdls.com",
+    "legalBusinessName": "Gdls",
+    "domains": [
+      "gdls.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_ngc.com",
+    "legalBusinessName": "Ngc",
+    "domains": [
+      "ngc.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_baesystems.com",
+    "legalBusinessName": "Baesystems",
+    "domains": [
+      "baesystems.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_caci.com",
+    "legalBusinessName": "Caci",
+    "domains": [
+      "caci.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_leidos.com",
+    "legalBusinessName": "Leidos",
+    "domains": [
+      "leidos.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_saic.com",
+    "legalBusinessName": "Saic",
+    "domains": [
+      "saic.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_boozallen.com",
+    "legalBusinessName": "Boozallen",
+    "domains": [
+      "boozallen.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_perspecta.com",
+    "legalBusinessName": "Perspecta",
+    "domains": [
+      "perspecta.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_manTech.com",
+    "legalBusinessName": "Mantech",
+    "domains": [
+      "manTech.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_kbr.com",
+    "legalBusinessName": "Kbr",
+    "domains": [
+      "kbr.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_jacobs.com",
+    "legalBusinessName": "Jacobs",
+    "domains": [
+      "jacobs.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_aerojetrocketdyne.com",
+    "legalBusinessName": "Aerojetrocketdyne",
+    "domains": [
+      "aerojetrocketdyne.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_textron.com",
+    "legalBusinessName": "Textron",
+    "domains": [
+      "textron.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_huntingtoningalls.com",
+    "legalBusinessName": "Huntingtoningalls",
+    "domains": [
+      "huntingtoningalls.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_flir.com",
+    "legalBusinessName": "Flir",
+    "domains": [
+      "flir.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_kratosdefense.com",
+    "legalBusinessName": "Kratosdefense",
+    "domains": [
+      "kratosdefense.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_mercurydefense.com",
+    "legalBusinessName": "Mercurydefense",
+    "domains": [
+      "mercurydefense.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_v2x.com",
+    "legalBusinessName": "V2X",
+    "domains": [
+      "v2x.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_parsons.com",
+    "legalBusinessName": "Parsons",
+    "domains": [
+      "parsons.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_mantech.com",
+    "legalBusinessName": "Mantech",
+    "domains": [
+      "mantech.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_peraton.com",
+    "legalBusinessName": "Peraton",
+    "domains": [
+      "peraton.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_sierranevadacorp.com",
+    "legalBusinessName": "Sierranevadacorp",
+    "domains": [
+      "sierranevadacorp.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_palantir.com",
+    "legalBusinessName": "Palantir",
+    "domains": [
+      "palantir.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_anduril.com",
+    "legalBusinessName": "Anduril",
+    "domains": [
+      "anduril.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_epirus.com",
+    "legalBusinessName": "Epirus",
+    "domains": [
+      "epirus.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_shield.ai",
+    "legalBusinessName": "Shield",
+    "domains": [
+      "shield.ai"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_hawkeye360.com",
+    "legalBusinessName": "Hawkeye360",
+    "domains": [
+      "hawkeye360.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_planet.com",
+    "legalBusinessName": "Planet",
+    "domains": [
+      "planet.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_maxar.com",
+    "legalBusinessName": "Maxar",
+    "domains": [
+      "maxar.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_spacenavigator.com",
+    "legalBusinessName": "Spacenavigator",
+    "domains": [
+      "spacenavigator.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_firefly.com",
+    "legalBusinessName": "Firefly",
+    "domains": [
+      "firefly.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_rocketlabusa.com",
+    "legalBusinessName": "Rocketlabusa",
+    "domains": [
+      "rocketlabusa.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_blueorigin.com",
+    "legalBusinessName": "Blueorigin",
+    "domains": [
+      "blueorigin.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_spacex.com",
+    "legalBusinessName": "Spacex",
+    "domains": [
+      "spacex.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_rtx.com",
+    "legalBusinessName": "Rtx",
+    "domains": [
+      "rtx.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_gdmissionsystems.com",
+    "legalBusinessName": "Gdmissionsystems",
+    "domains": [
+      "gdmissionsystems.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_gdit.com",
+    "legalBusinessName": "Gdit",
+    "domains": [
+      "gdit.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_accenturefederal.com",
+    "legalBusinessName": "Accenturefederal",
+    "domains": [
+      "accenturefederal.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_deloitte.com",
+    "legalBusinessName": "Deloitte",
+    "domains": [
+      "deloitte.com"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_ibm.com/federal",
+    "legalBusinessName": "Ibm",
+    "domains": [
+      "ibm.com/federal"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_microsoft.com/federal",
+    "legalBusinessName": "Microsoft",
+    "domains": [
+      "microsoft.com/federal"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_amazon.com/govcloud",
+    "legalBusinessName": "Amazon",
+    "domains": [
+      "amazon.com/govcloud"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_google.com/publicsector",
+    "legalBusinessName": "Google",
+    "domains": [
+      "google.com/publicsector"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  },
+  {
+    "entityId": "SEED_oracle.com/defense",
+    "legalBusinessName": "Oracle",
+    "domains": [
+      "oracle.com/defense"
+    ],
+    "nistAttestation": {
+      "date": "2023-01-01",
+      "status": "Assumed Active - verify with SAM.gov API key"
+    },
+    "contractPeriod": {
+      "start": "2023-01-01",
+      "end": "2028-12-31"
+    },
+    "contractValue": "Unknown - requires SAM.gov API key",
+    "_source": "public_domain_list"
+  }
+]
