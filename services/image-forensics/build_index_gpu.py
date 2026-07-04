@@ -89,7 +89,13 @@ def main() -> int:
     t0 = time.time()
     n_seen = 0
     for key, gray in panel_iter():
-        rgb = cv2.cvtColor(cv2.resize(gray, (224, 224)), cv2.COLOR_GRAY2RGB)
+        if gray is None or (hasattr(gray, "size") and gray.size == 0):
+            continue
+        try:
+            resized = cv2.resize(gray, (224, 224))
+        except cv2.error:
+            continue
+        rgb = cv2.cvtColor(resized, cv2.COLOR_GRAY2RGB)
         t = torch.from_numpy(rgb).permute(2, 0, 1).float() / 255.0
         batch_keys.append(key)
         batch_tensors.append(t)
