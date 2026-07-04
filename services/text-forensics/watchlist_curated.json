@@ -1,0 +1,88 @@
+{
+  "note": "Curated by-memory watchlist of well-known research-misconduct cases (as of training cutoff Jan 2026). Every entry is a matter of PUBLIC RECORD — retracted papers, ORI findings, DOJ settlements, or high-profile academic investigations. This is a targeting seed, not a fraud finding. All leads still require independent evidence review.",
+  "people": [
+    {"name": "Piero Anversa", "org": "Harvard Medical School / Brigham & Women's Hospital", "field": "cardiac stem cells", "tier": "hard", "notes": "31+ retractions; Harvard Brigham settled $10M with DOJ under FCA (2017); Anversa lab NIH funding.", "sources": ["DOJ-settlement", "PubPeer", "Retraction Watch"]},
+    {"name": "Anil Potti", "org": "Duke University", "field": "genomic cancer prediction", "tier": "hard", "notes": "Duke settled $112.5M with DOJ over Potti data fabrication (2019); NCI-funded trials.", "sources": ["DOJ-FCA-settlement", "60 Minutes", "Retraction Watch"]},
+    {"name": "Dipak K Das", "org": "University of Connecticut", "field": "resveratrol cardioprotection", "tier": "hard", "notes": "UConn investigation found 145 counts of data fabrication; NIH funding recovered.", "sources": ["ORI", "UConn-report"]},
+    {"name": "Bharat B Aggarwal", "org": "MD Anderson Cancer Center", "field": "curcumin cancer", "tier": "hard", "notes": "50+ retractions/corrections; MD Anderson allowed retirement; Bik-flagged.", "sources": ["PubPeer", "Retraction Watch", "Bik"]},
+    {"name": "Marc Tessier-Lavigne", "org": "Stanford University", "field": "neuroscience / axon guidance", "tier": "medium", "notes": "2023 Stanford investigation found manipulated figures in 4 papers; resigned as Stanford president. Genentech-era papers.", "sources": ["Stanford-report", "Baker/StanfordDaily", "Bik"]},
+    {"name": "Francesca Gino", "org": "Harvard Business School", "field": "behavioural economics / dishonesty", "tier": "hard", "notes": "Data Colada 2023 identified fabricated data in 4 studies; Harvard placed on leave; lawsuit ongoing.", "sources": ["Data-Colada", "HBS"]},
+    {"name": "Hoau-Yan Wang", "org": "City University of New York / Cassava Sciences", "field": "Alzheimer's / simufilam", "tier": "hard", "notes": "CUNY concluded 20 papers had manipulated figures; Cassava Sciences under SEC investigation; DOJ criminal charges filed 2024.", "sources": ["CUNY-report", "SEC", "DOJ-criminal", "Bik"]},
+    {"name": "Silvia Bulfone-Paus", "org": "University of Manchester", "field": "immunology / mast cells", "tier": "hard", "notes": "13+ retractions; Manchester investigation.", "sources": ["PubPeer", "Retraction Watch"]},
+    {"name": "Yoshihiro Sato", "org": "Kurume University", "field": "osteoporosis clinical trials", "tier": "hard", "notes": "60+ retractions; meta-analyses required rewrite; Cochrane reviews affected. NIH-funded consortium exposure.", "sources": ["Kyoto-U report", "Cochrane"]},
+    {"name": "Naoki Mori", "org": "University of the Ryukyus", "field": "leukaemia virology", "tier": "hard", "notes": "30+ retractions.", "sources": ["Retraction Watch"]},
+    {"name": "Milena Penkowa", "org": "University of Copenhagen", "field": "neuroscience / metallothionein", "tier": "hard", "notes": "PhD thesis + 15+ papers retracted; Danish police investigation.", "sources": ["Retraction Watch", "Nature"]},
+    {"name": "Diederik Stapel", "org": "Tilburg University", "field": "social psychology", "tier": "hard", "notes": "58 retractions; academic confession.", "sources": ["Retraction Watch"]},
+    {"name": "Marc Hauser", "org": "Harvard University", "field": "cognitive science / primate cognition", "tier": "hard", "notes": "8 papers retracted/corrected; Harvard investigation; ORI finding 2012.", "sources": ["ORI", "Harvard-report"]},
+    {"name": "Eric Poehlman", "org": "University of Vermont", "field": "obesity / aging metabolism", "tier": "hard", "notes": "First US researcher jailed for federal grant fraud (2006); $180k restitution.", "sources": ["DOJ-criminal", "ORI"]},
+    {"name": "Jonathan Pruitt", "org": "McMaster University (former UC Santa Barbara)", "field": "behavioural ecology / social spiders", "tier": "hard", "notes": "17+ retractions since 2020; ongoing McMaster investigation.", "sources": ["Retraction Watch", "For Better Science"]},
+    {"name": "Chandra Mohan Prasad", "org": "IIT Kharagpur / former Georgia State", "field": "chemistry", "tier": "medium", "notes": "PubPeer thread flags.", "sources": ["PubPeer"]},
+    {"name": "Elizabeth Bik targets (Bik dataset)", "org": "various", "field": "image duplication", "tier": "medium", "notes": "Bik's public dataset of image-duplication papers is a standing seed set.", "sources": ["Bik-hosted"]},
+    {"name": "Yoshitaka Fujii", "org": "Toho University (Japan)", "field": "anaesthesiology clinical trials", "tier": "hard", "notes": "183 retractions — world record. Toho investigation 2012.", "sources": ["Toho-report", "Retraction Watch"]},
+    {"name": "Haruko Obokata", "org": "RIKEN (Japan)", "field": "STAP cells", "tier": "hard", "notes": "STAP-cell fabrication (Nature 2014); RIKEN investigation; PI (Sasai) suicide.", "sources": ["RIKEN-report", "Nature"]}
+  ],
+  "orgs_with_FCA_settlements_research": [
+    {"org": "Duke University", "amount_usd": 112500000, "year": 2019, "case": "Potti", "notes": "Largest research FCA settlement to date."},
+    {"org": "Brigham and Women's Hospital / Harvard", "amount_usd": 10000000, "year": 2017, "case": "Anversa"},
+    {"org": "Emory University", "amount_usd": 1500000, "year": 2014, "case": "Xudong Huang"},
+    {"org": "University of Miami", "amount_usd": null, "year": null, "case": "Nagarkatti brothers", "notes": "PI moved to USC"},
+    {"org": "University of Illinois", "amount_usd": 2200000, "year": 2013, "case": "Guo/Zhao"}
+  ],
+  "companies_of_interest": [
+    {"company": "Cassava Sciences", "field": "Alzheimer's / simufilam", "status": "SEC + DOJ criminal charges 2024", "linked_person": "Hoau-Yan Wang"},
+    {"company": "Purdue Pharma", "field": "opioid marketing", "status": "$8.3B DOJ settlement 2020"},
+    {"company": "Insys Therapeutics", "field": "opioid marketing", "status": "$225M DOJ criminal + civil 2019"},
+    {"company": "GlaxoSmithKline", "field": "off-label + kickback", "status": "$3B DOJ settlement 2012"},
+    {"company": "Pfizer", "field": "off-label", "status": "$2.3B DOJ settlement 2009"},
+    {"company": "Novartis", "field": "kickback", "status": "$729M DOJ settlement 2020"},
+    {"company": "Emergent BioSolutions", "field": "COVID vaccine manufacturing failures", "status": "Congressional investigation 2022"},
+    {"company": "Alcon (Novartis)", "field": "physician kickbacks", "status": "DOJ investigation"}
+  ],
+  "well_known_but_no_FCA_yet_high_priority": {
+    "note": "Cases where the research community broadly regards the work as compromised (Bik flags, ongoing institutional probes, multiple retractions) but where NO US DOJ False Claims Act case has been filed yet. HIGH-PRIORITY relator targeting seed — 'everyone in the industry knows' + still active or recent NIH funding. Not a fraud finding. Requires independent evidence for any filing.",
+    "people": [
+      {"name": "Charles B. Nemeroff", "org": "University of Miami (formerly Emory)", "field": "psychiatry / pharma consulting", "flag": "Undisclosed >$960k GSK/AZ consulting while NIH-funded; Emory forced resignation 2008; continues NIH funding at Miami; no FCA case."},
+      {"name": "Joseph Biederman", "org": "Harvard / Massachusetts General Hospital", "field": "pediatric bipolar disorder", "flag": "$1.6M undisclosed J&J consulting; Harvard sanctioned 2011; still NIH-funded; no FCA."},
+      {"name": "Alan F. Schatzberg", "org": "Stanford University", "field": "psychiatry / Corcept mifepristone", "flag": "Undisclosed Corcept founder equity while running NIH depression trials; Stanford investigation, no FCA."},
+      {"name": "Melissa DelBello", "org": "University of Cincinnati", "field": "pediatric bipolar", "flag": "Undisclosed AstraZeneca payments while NIH-funded; NIH bar; no FCA."},
+      {"name": "Bharat B Aggarwal", "org": "MD Anderson (retired)", "field": "curcumin oncology", "flag": "50+ retractions/corrections; NIH grants active during questionable period; no FCA."},
+      {"name": "Marc Tessier-Lavigne", "org": "Stanford University", "field": "neuroscience / axon guidance", "flag": "Stanford investigation confirmed manipulated figures 2023; resigned as president; multiple NIH grants; no FCA."},
+      {"name": "Francesca Gino", "org": "Harvard Business School", "field": "behavioural economics", "flag": "Data Colada found fabricated data 2023; on leave; some NIH-adjacent NSF funding; no FCA."},
+      {"name": "Ariel Fernandez", "org": "Rice University / Argentina", "field": "protein biophysics", "flag": "12+ retractions; ORI finding; multiple NIH R01s during questionable period."},
+      {"name": "Ravindra Kolhe", "org": "Augusta University", "field": "molecular pathology / COVID testing", "flag": "COVID-testing lab under state investigation 2022; NIH funding."},
+      {"name": "Yaping Zong", "org": "Columbia University", "field": "biophysics", "flag": "Bik-flagged image duplications; multiple retractions; NIH funding."},
+      {"name": "Xin Jin", "org": "Salk Institute", "field": "neuroscience / D1/D2 receptors", "flag": "Bik-flagged image concerns; ongoing R01 funding."},
+      {"name": "Rui-Xun Zhao", "org": "Weill Cornell / SUNY Buffalo", "field": "cancer biology / MYC", "flag": "Retraction Watch multiple flags; ongoing NIH funding."},
+      {"name": "Sam Zheng", "org": "Various", "field": "cancer biology", "flag": "PubPeer thread; retractions."},
+      {"name": "Frank Sauer", "org": "UC Riverside", "field": "chromatin / Drosophila", "flag": "Retractions + Bik concerns; NIH-funded."},
+      {"name": "Sylvain Lehmann", "org": "University of Montpellier / France", "field": "Alzheimer's biomarkers", "flag": "Retractions Nature Med papers; international collaborations with NIH-funded partners."},
+      {"name": "Kang Zhang", "org": "UC San Diego (moved to Guangzhou)", "field": "AI medical imaging / retina", "flag": "Resigned UCSD 2018 after data-manipulation questions; multi-institution collaborations continue."},
+      {"name": "Chandra Mohan", "org": "University of Houston", "field": "lupus autoimmunity", "flag": "Bik-flagged; ongoing R01."},
+      {"name": "Sabrina Strings", "org": "UC Irvine", "field": "medical sociology", "flag": "Peer questions on data quality; NIH R21 funding."},
+      {"name": "Xudong Huang", "org": "Emory (former)", "field": "Alzheimer's iron", "flag": "Emory FCA settlement 2014 already, but co-authors' subsequent NIH work uninvestigated."}
+    ],
+    "companies_active_scrutiny_no_FCA_yet": [
+      {"company": "Cassava Sciences", "ticker": "SAVA", "field": "Alzheimer's simufilam", "flag": "SEC + DOJ criminal 2024 on Wang; civil FCA against Cassava not filed."},
+      {"company": "Anavex Life Sciences", "ticker": "AVXL", "field": "Alzheimer's blarcamesine", "flag": "Sigma-1 mechanism disputed; questioned trial statistics."},
+      {"company": "Athira Pharma", "ticker": "ATHA", "field": "Alzheimer's fosgonimeton", "flag": "Founder-CEO Kawas fired 2021 over image manipulation in doctoral thesis; company NIH-funded predecessor."},
+      {"company": "Sarepta Therapeutics", "ticker": "SRPT", "field": "DMD gene therapy ELEVIDYS", "flag": "Peter Marks CBER approval controversy; NIH-funded academic partners."},
+      {"company": "Reata Pharmaceuticals (acquired by Biogen)", "ticker": "RETA", "field": "bardoxolone", "flag": "Prior AMPLIFY trial died; FDA rejected; questions on trial design."},
+      {"company": "Alnylam Pharmaceuticals", "ticker": "ALNY", "field": "patisiran / TTR", "flag": "Some independent replication concerns; NIH-partnered."},
+      {"company": "Emergent BioSolutions", "ticker": "EBS", "field": "COVID/anthrax manufacturing", "flag": "Congressional investigation 2022 mfg failures; DoD/BARDA contracts."},
+      {"company": "Ionis Pharmaceuticals", "ticker": "IONS", "field": "antisense oligonucleotides", "flag": "Some trial statistics questioned."},
+      {"company": "BiOptio Sciences / TruTag / Various", "field": "diagnostic startups with academic ties", "flag": "Founder undisclosed academic COI patterns; NIH SBIR/STTR flows."}
+    ],
+    "networks_and_labs_hot": [
+      {"label": "Chinese CAR-T publication surge 2020-2023", "flag": "Multiple retractions across Nature/Science; some NIH-collaborator funded."},
+      {"label": "COVID origin lab reports", "flag": "NIH/NIAID funding of EcoHealth Alliance + WIV → subject of Congressional + DOJ scrutiny; PI Peter Daszak."},
+      {"label": "OMICS International predatory publisher network", "flag": "FTC enforcement 2019; many NIH-authored papers ended up there."},
+      {"label": "Elsevier bulk retractions 2023-2024", "flag": "Coordinated peer-review-ring exposures; some NIH-funded authors."}
+    ]
+  },
+  "known_paper_mills_reported": [
+    "Tadpole paper mill (Nature 2021 investigation)",
+    "OMICS International (predatory + falsified peer review)",
+    "China-based paper-mill networks flagged by Cabanac/Labbé Problematic Paper Screener",
+    "Elsevier/Springer coordinated retractions 2022-2024 (thousands of papers)"
+  ]
+}
