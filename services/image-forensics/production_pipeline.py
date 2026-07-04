@@ -103,27 +103,45 @@ class ProductionPipeline:
 
         print(f"STEP 2: Embedding {n} panels + FAISS index...", flush=True)
 
-        # Use grid statistics as embedding (no model download needed)
-        dim = 128
+        # Use torchvision pretrained ResNet50 as embedding backbone
+        try:
+            import torch
+            import torchvision.models as models
+            import torchvision.transforms as T
+            model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
+            model.fc = torch.nn.Identity()
+            model.eval()
+            dim = 2048
+            print(f"  Model: ResNet50 (ImageNet, {dim}-dim)", flush=True)
+            transform = T.Compose([
+                T.ToPILImage(),
+                T.Resize((224, 224)),
+                T.Grayscale(num_output_channels=3),
+                T.ToTensor(),
+                T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]),
+            ])
+        except Exception as e:
+            print(f"  ResNet50 failed ({e}), falling back to grid stats", flush=True)
+            dim = 128
+            model = None
+
         keys = list(self.panels.keys())
         matrix = np.zeros((n, dim), dtype=np.float32)
         for i, key in enumerate(keys):
             panel = self.panels[key]
-            # Resize to standard size
-            resized = cv2.resize(panel, (128, 128))
-            features = []
-            # Global stats
-            features.append(float(np.mean(resized)))
-            features.append(float(np.std(resized)))
-            # Grid stats (8x8 cells)
-            for y in range(0, 128, 16):
-                for x in range(0, 128, 16):
-                    cell = resized[y:y+16, x:x+16]
-                    features.append(float(np.mean(cell)))
-            # Pad to dim
-            features = np.array(features, dtype=np.float32)[:dim]
-            if len(features) < dim:
-                features = np.pad(features, (0, dim - len(features)))
+            if model is not None:
+                with torch.no_grad():
+                    t = transform(panel).unsqueeze(0)
+                    features = model(t).squeeze(0).numpy()
+            else:
+                resized = cv2.resize(panel, (128, 128))
+                features = [float(np.mean(resized)), float(np.std(resized))]
+                for y in range(0, 128, 16):
+                    for x in range(0, 128, 16):
+                        features.append(float(np.mean(resized[y:y+16, x:x+16])))
+                features = np.array(features, dtype=np.float32)[:dim]
+                if len(features) < dim:
+                    features = np.pad(features, (0, dim - len(features)))
             matrix[i] = features
 
         self._build_faiss(matrix, keys, dim)
