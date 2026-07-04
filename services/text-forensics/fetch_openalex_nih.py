@@ -56,14 +56,25 @@ def pmid_from_ids(ids: dict | None) -> str | None:
     return pmid.rsplit("/", 1)[-1] if "/" in pmid else pmid
 
 
-def http_json(url: str, retries: int = 5) -> dict:
+def http_json(url: str, retries: int = 10) -> dict:
     err: Exception | None = None
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "sfh-extrapolator/1"})
             with urllib.request.urlopen(req, timeout=90) as r:
                 return json.loads(r.read())
-        except Exception as e:  # noqa: BLE001 — retry any transient
+        except urllib.error.HTTPError as e:  # type: ignore[name-defined]
+            # Honour 429 Retry-After when provided; else slow-start backoff (30/60/120/240s).
+            if e.code == 429:
+                ra = e.headers.get("Retry-After") if hasattr(e, "headers") else None
+                wait = int(ra) if (ra and ra.isdigit()) else min(300, 30 * (2 ** attempt))
+                print(f"openalex 429; sleep {wait}s", file=sys.stderr, flush=True)
+                time.sleep(wait)
+                err = e
+                continue
+            err = e
+            time.sleep(2 ** attempt)
+        except Exception as e:  # noqa: BLE001
             err = e
             time.sleep(2 ** attempt)
     raise RuntimeError(f"openalex fetch failed: {url}") from err
@@ -91,8 +102,18 @@ def main() -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     n = 0
+    resume_ids: set[str] = set()
+    if args.out.exists() and args.out.stat().st_size > 0:
+        with args.out.open() as fh:
+            for line in fh:
+                try:
+                    resume_ids.add(json.loads(line).get("id") or "")
+                    n += 1
+                except Exception:
+                    pass
+        print(f"resume: {n} already fetched, appending", file=sys.stderr, flush=True)
     t0 = time.time()
-    with args.out.open("w") as fh:
+    with args.out.open("a") as fh:
         while cursor and n < args.limit:
             qs = urllib.parse.urlencode({
                 "filter": filt,
@@ -106,7 +127,10 @@ def main() -> int:
             results = data.get("results", []) or []
             if not results:
                 break
+            time.sleep(0.15)  # ~7 req/s max; polite pool tolerates ~10
             for w in results:
+                if w.get("id") in resume_ids:
+                    continue
                 abstract = reconstruct_abstract(w.get("abstract_inverted_index"))
                 if not abstract:
                     continue

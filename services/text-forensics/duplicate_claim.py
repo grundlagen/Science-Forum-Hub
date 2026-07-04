@@ -29,6 +29,33 @@ def main() -> int:
     ap.add_argument("out", type=Path)
     args = ap.parse_args()
 
+    # Institutional master contracts show up on thousands of unrelated papers by
+    # design (Berkeley/Argonne/Livermore DoE contracts, EU framework programmes,
+    # NSF facility awards). Not fraud — skip.
+    INSTITUTIONAL_PATTERNS = [
+        r"^DE-AC0",         # DoE lab master contracts (Berkeley 05CH11231, etc)
+        r"^AC0[0-9]{2}-",   # ditto
+        r"^FP[0-9]?/",      # EU FP6/FP7
+        r"^H2020",          # Horizon 2020
+        r"^EU-[0-9]",       # EU generic
+        r"^UL1 TR",         # NIH CTSA institutional
+        r"^P30 (CA|DK|AG|GM|EY|NS|AI|HL|MH|DA|ES|HD|CA)",  # cancer/institute core grants
+        r"^P40",            # NIH shared-resource
+        r"^S10",            # NIH shared-instrumentation
+        r"^C06",            # NIH construction
+        r"^P51",            # NIH primate centers
+        r"^G20",            # NIH facilities
+    ]
+    import re
+    inst_re = re.compile("|".join(INSTITUTIONAL_PATTERNS))
+    def is_institutional(award: str) -> bool:
+        if not award:
+            return False
+        # short award-id fragments (<7 chars) are almost always OpenAlex parsing artefacts
+        if len(award) < 7:
+            return True
+        return bool(inst_re.search(award))
+
     multi_funder: list[dict] = []
     award_to_papers: dict[str, list[dict]] = defaultdict(list)
     award_to_pi_sets: dict[str, set[str]] = defaultdict(set)
@@ -40,7 +67,7 @@ def main() -> int:
             continue
         grants = r.get("grants") or []
         funders = {g.get("funder") for g in grants if g.get("funder")}
-        awards = [g.get("award_id") for g in grants if g.get("award_id")]
+        awards = [g.get("award_id") for g in grants if g.get("award_id") and not is_institutional(g.get("award_id"))]
         authors = tuple(sorted((a.get("id") or a.get("name") or "") for a in (r.get("authors") or [])))
         if len(funders) >= 2:
             multi_funder.append({

@@ -59,7 +59,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("works", type=Path)
     ap.add_argument("out", type=Path)
-    ap.add_argument("--min-n", type=int, default=30)
+    ap.add_argument("--min-n", type=int, default=200)
+    ap.add_argument("--min-crit-mult", type=float, default=3.0,
+                    help="chi-crit multiplier — 3.0 means 3x the p=0.01 crit value (much stricter than default)")
     args = ap.parse_args()
 
     per_author_first: dict[str, list[int]] = defaultdict(lambda: [0] * 9)
@@ -91,8 +93,8 @@ def main() -> int:
                 per_author_n[aid] += 1
 
     # chi^2 critical at df=8 p<0.01 = 20.09; df=9 p<0.01 = 21.67
-    CRIT_FIRST = 20.09
-    CRIT_LAST = 21.67
+    CRIT_FIRST = 20.09 * args.min_crit_mult
+    CRIT_LAST = 21.67 * args.min_crit_mult
     flagged = []
     for aid, n in per_author_n.items():
         if n < args.min_n:
