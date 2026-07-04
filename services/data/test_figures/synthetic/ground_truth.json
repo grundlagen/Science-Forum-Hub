@@ -1,0 +1,15 @@
+[
+  {"a": "blot_clone_manipulated", "b": "blot_clone_original", "manipulated": true, "type": "band_cloning"},
+  {"a": "blot_lane_duplicated", "b": "blot_original_a", "manipulated": true, "type": "lane_duplication"},
+  {"a": "blot_lane_duplicated", "b": "blot_original_b", "manipulated": true, "type": "lane_duplication"},
+  {"a": "flow_curve_reused", "b": "flow_original_a", "manipulated": true, "type": "histogram_reuse"},
+  {"a": "flow_curve_reused", "b": "flow_original_b", "manipulated": true, "type": "histogram_reuse"},
+  {"a": "panel_reuse_fig1a", "b": "panel_reuse_fig3b", "manipulated": true, "type": "panel_reuse"},
+  {"a": "clean_blot_1", "b": "clean_blot_2", "manipulated": false},
+  {"a": "clean_blot_1", "b": "clean_flow_1", "manipulated": false},
+  {"a": "clean_blot_2", "b": "clean_flow_1", "manipulated": false},
+  {"a": "blot_original_a", "b": "blot_original_b", "manipulated": false},
+  {"a": "flow_original_a", "b": "flow_original_b", "manipulated": false},
+  {"a": "blot_original_a", "b": "clean_blot_1", "manipulated": false},
+  {"a": "blot_original_a", "b": "clean_blot_2", "manipulated": false}
+]

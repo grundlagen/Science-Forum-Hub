@@ -33,6 +33,7 @@ PHASH_MAX_DISTANCE = 8          # Hamming distance <= this => likely near-duplic
 ORB_FEATURES = 2000
 ORB_RATIO = 0.75                # Lowe ratio test
 MIN_RANSAC_INLIERS = 12         # consistent geometric matches => reused region
+MIN_RANSAC_INLIERS = 10         # lowered for small cloned regions (Iteration 3)
 # ---------------------------------------------------------------------------
 
 
