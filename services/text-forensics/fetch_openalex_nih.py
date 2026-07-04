@@ -69,7 +69,7 @@ def main() -> int:
 
     mailto = os.environ.get("OPENALEX_MAILTO", "rupertwmurphy@gmail.com")
     api_key = os.environ.get("OPENALEX_API_KEY", "")
-    filt = f"grants.funder:{NIH_FUNDER_ID},from_publication_date:{args.from_year}-01-01,has_abstract:true"
+    filt = f"awards.funder_id:{NIH_FUNDER_ID},from_publication_date:{args.from_year}-01-01,has_abstract:true"
     cursor = "*"
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -82,7 +82,7 @@ def main() -> int:
                 "per-page": args.per_page,
                 "cursor": cursor,
                 "mailto": mailto,
-                "select": "id,doi,ids,title,abstract_inverted_index,publication_year,authorships,grants",
+                "select": "id,doi,ids,title,abstract_inverted_index,publication_year,authorships,awards",
                 **({"api_key": api_key} if api_key else {}),
             })
             data = http_json(f"{BASE}?{qs}")
@@ -109,12 +109,13 @@ def main() -> int:
                     ],
                     "grants": [
                         {
-                            "funder": g.get("funder"),
+                            "funder": g.get("funder_id"),
                             "funder_name": g.get("funder_display_name"),
-                            "award_id": g.get("award_id"),
+                            "award_id": g.get("funder_award_id"),
                         }
-                        for g in (w.get("grants") or [])
-                        if g.get("funder") == f"https://openalex.org/funders/{NIH_FUNDER_ID}"
+                        for g in (w.get("awards") or [])
+                        if (g.get("funder_display_name") or "").lower().startswith("national institutes of health")
+                        or "nih" in (g.get("funder_award_id") or "").upper()
                     ],
                 }
                 fh.write(json.dumps(rec) + "\n")
