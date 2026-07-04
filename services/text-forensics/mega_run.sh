@@ -72,4 +72,29 @@ log "spawn: RePORTER embed (waits until scale_run frees the GPU + reporter grant
 ) > "$BASE/logs/reporter_embed_wait.log" 2>&1 &
 echo $! > "$BASE/logs/reporter_embed.pid"
 
+log "spawn: full-text Europe PMC BioC fetcher (waits for works.jsonl, streams passages)"
+(
+  while [ ! -f /dev/shm/text-run/works.jsonl ]; do sleep 60; done
+  python3 services/text-forensics/fetch_europepmc_fulltext.py /dev/shm/text-run/works.jsonl \
+    "$BASE/reporter/passages.jsonl" --max 200000 --concurrency 8 > "$BASE/logs/fulltext.log" 2>&1
+) > "$BASE/logs/fulltext_wait.log" 2>&1 &
+echo $! > "$BASE/logs/fulltext.pid"
+
+log "spawn: benford + velocity + duplicate-claim detector loop (30 min cycle)"
+(
+  while true; do
+    src=/dev/shm/text-run/works.jsonl
+    [ -f "$src" ] || src=/workspace/text-run-02/works_meta.jsonl
+    if [ -f "$src" ]; then
+      python3 services/text-forensics/benford.py "$src" "$BASE/cluster/benford.json" > /dev/null 2>&1
+      python3 services/text-forensics/duplicate_claim.py "$src" "$BASE/cluster/duplicate_claim.json" > /dev/null 2>&1
+      if [ -f "$BASE/reporter/grants.jsonl" ]; then
+        python3 services/text-forensics/velocity.py "$src" "$BASE/reporter/grants.jsonl" "$BASE/cluster/velocity.json" > /dev/null 2>&1
+      fi
+    fi
+    sleep 1800
+  done
+) > "$BASE/logs/analytics_loop.log" 2>&1 &
+echo $! > "$BASE/logs/analytics_loop.pid"
+
 log "all workers spawned. tail $BASE/logs/mega.log for status."
