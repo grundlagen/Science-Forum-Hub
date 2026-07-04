@@ -155,6 +155,18 @@ New artefacts in /workspace/mega/ + gdrive:sfh/runs/text-run-02/:
 - grim_v2.jsonl (38 attorney-grade), grim_v2_summary.json, grim_v2_survivors.jsonl (29 from spot check)
 - grant_shortlist_R_v2.jsonl (197), grant_shortlist_R_v2_summary.json
 
+## Curated watchlist pass (2026-07-04)
+Pivoted from name-collision-prone RePORTER match to a curated list of well-known-but-unfiled cases from training memory. Cross-checked 38 targets against 481k RePORTER grants → **7 with active NIH funding matches**. Highest-priority:
+1. **Chandra Mohan** — U Houston, Bik-flagged lupus autoimmunity, **14 active R01/R21 grants totaling $5.1M**, no DOJ FCA case.
+2. **Alan F. Schatzberg** — Stanford, undisclosed Corcept equity while running NIH depression trials, $2.2M T32MH019938.
+3. **Charles B. Nemeroff** — U Miami (post-Emory forced-resignation), undisclosed pharma consulting, $1.7M R01AA024933.
+4. **Xudong Huang** — MGH (post-Emory FCA settlement), $1.5M R01AG056614.
+5. **Piero Anversa** — Brigham, $1.2M pre-2017-DOJ-settlement grants (already resolved).
+6. **Xin Jin** — Salk, Bik-flagged image concerns, $481k R56NS083815.
+7. **Kang Zhang** — UCSD/China, name-collision noisy.
+
+Files: `services/text-forensics/watchlist_curated.json` (source list), `runs/text-run-02/curated_hits.json` (7 matches with grant IDs). Pushed to gdrive:sfh/.
+
 ## Fix pass v3 (after relator-json-review handoff)
 Other session pushed `claude/relator-json-review-07qt3k` w/ per-detector diagnosis. Applied fixes:
 - **grant_shortlist v3/v4**: added unordered-core-pair dedup (killed 608k dup rows), same-core rejection (multi-PI collab), companion-award numeric-suffix filter, title-strip-multisite-prefix. 218 → 6 survivors. 5 are Study of Osteoporotic Fractures (SOF) multi-site R01s (linked awards missed by regex — need NIH companion-award DB, i.e. entity resolution).
