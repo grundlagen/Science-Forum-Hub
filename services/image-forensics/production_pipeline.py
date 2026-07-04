@@ -45,7 +45,9 @@ class ProductionPipeline:
         self.panels: dict[str, np.ndarray] = {}  # key -> gray image
         self.embeddings: dict[str, np.ndarray] = {}
         self.index = None
+        self.dl_scorer = None
         self._load_detectors()
+        self._init_deep_learning()
 
     def _load_detectors(self):
         """Import verification detectors."""
@@ -53,6 +55,23 @@ class ProductionPipeline:
         import forensics
         self.detector = detector
         self.forensics = forensics
+
+    def _init_deep_learning(self):
+        """Initialize deep learning forgery detector if available."""
+        try:
+            from deep_forgery import DeepForgeryScorer
+            weights = Path(__file__).parent.parent.parent / "data" / "models" / "forgery_detector.pth"
+            if not weights.exists():
+                weights = Path("/tmp/forgery_detector.pth")
+            if weights.exists():
+                self.dl_scorer = DeepForgeryScorer(weights_path=str(weights))
+                print("  DeepForgery detector: loaded", flush=True)
+            else:
+                print("  DeepForgery detector: training new...", flush=True)
+                self.dl_scorer = DeepForgeryScorer()
+        except Exception as e:
+            print(f"  DeepForgery detector: unavailable ({e})", flush=True)
+            self.dl_scorer = None
 
     # ── STEP 1: Panel segmentation ──────────────────────────────────────
     def segment_all(self) -> int:
@@ -256,6 +275,19 @@ class ProductionPipeline:
                 evidence.append(f"similarity={s:.3f}")
                 scores.append((s - 0.85) * 5.0)
         except ImportError:
+            pass
+
+        # 4. Deep Learning Forgery Detection (complements ORB)
+        try:
+            if hasattr(self, 'dl_scorer') and self.dl_scorer is not None:
+                r_a = self.dl_scorer.score(img_a)
+                r_b = self.dl_scorer.score(img_b)
+                dl_avg = (r_a.get("score", 0) + r_b.get("score", 0)) / 2
+                if dl_avg > 0.3:
+                    detectors.append("DeepForgery")
+                    evidence.append(f"DL_score={dl_avg:.3f} forged={r_a.get('forged_region_pct',0):.0f}%/{r_b.get('forged_region_pct',0):.0f}%")
+                    scores.append(min(1.0, dl_avg * 2.0))
+        except Exception:
             pass
 
         if not detectors:
