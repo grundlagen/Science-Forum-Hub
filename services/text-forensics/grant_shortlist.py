@@ -37,6 +37,36 @@ MULTISITE_RE = re.compile(
     """
 )
 
+# Companion-award numeric-suffix pattern.
+# NIH linked awards are given consecutive core project numbers within the same institute
+# (e.g. R01AA020388 / R01AA020389). Extract the trailing numeric suffix and flag near-neighbours.
+COREPAT = re.compile(r"^([A-Z]+[0-9]?)([A-Z]{2})([0-9]+)$")
+
+
+def core_parts(core: str) -> tuple[str, str, int] | None:
+    if not core:
+        return None
+    m = COREPAT.match(core.strip())
+    if not m:
+        return None
+    return m.group(1), m.group(2), int(m.group(3))
+
+
+def is_companion_pair(a_core: str, b_core: str) -> bool:
+    a = core_parts(a_core)
+    b = core_parts(b_core)
+    if not a or not b:
+        return False
+    if a[0] != b[0] or a[1] != b[1]:
+        return False
+    return abs(a[2] - b[2]) <= 2
+
+
+def strip_multisite_prefix(title: str) -> str:
+    if not title:
+        return ""
+    return re.sub(r"^\s*\d\s*/\s*\d[-\s:]*", "", title, flags=re.IGNORECASE).lower().strip()
+
 
 def is_multisite(title: str) -> bool:
     return bool(title and MULTISITE_RE.search(title))
@@ -65,12 +95,24 @@ def main() -> int:
     ap.add_argument("--reject-multisite", action="store_true", default=True)
     ap.add_argument("--allow-same-org", action="store_true", default=False,
                     help="If unset (default), require cross-institution")
+    ap.add_argument("--require-same-pi", action="store_true", default=False,
+                    help="Grant-reuse premise: same PI text-reused across grants. Off by default because "
+                         "PI-name normalisation is unreliable until entity-resolution lands.")
+    ap.add_argument("--reject-companion-awards", action="store_true", default=True,
+                    help="Drop pairs whose core-project numbers are consecutive (linked awards).")
+    ap.add_argument("--reject-multisite-title-strip", action="store_true", default=True,
+                    help="Drop pairs whose titles match after stripping 1/2, 2/2, etc. prefixes.")
     args = ap.parse_args()
 
     n_in = 0
     n_out = 0
     n_multisite = 0
     n_transition = 0
+    n_companion = 0
+    n_title_strip = 0
+    n_dedup = 0
+    n_same_pi_required = 0
+    seen_pairs: set[tuple[str, str]] = set()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.leads.open() as fh, args.out.open("w") as out_fh:
         for line in fh:
@@ -81,8 +123,21 @@ def main() -> int:
             n_in += 1
             if l.get("jaccard", 0) < args.jac_min:
                 continue
-            if l.get("same_pi"):
+            # dedup by unordered core pair
+            key = tuple(sorted([l.get("a_core") or "", l.get("b_core") or ""]))
+            if key in seen_pairs:
+                n_dedup += 1
                 continue
+            seen_pairs.add(key)
+            # same-PI is the FCA premise; but the review notes PI-name-normalisation is unreliable,
+            # so require_same_pi is opt-in. When on, use it.
+            if args.require_same_pi:
+                if not l.get("same_pi"):
+                    n_same_pi_required += 1
+                    continue
+            else:
+                if l.get("same_pi"):
+                    continue
             if not args.allow_same_org and l.get("same_org"):
                 continue
             a_ac = (l.get("a_ac") or "")
@@ -92,6 +147,13 @@ def main() -> int:
             if args.reject_multisite and (is_multisite(l.get("a_title")) or is_multisite(l.get("b_title"))):
                 n_multisite += 1
                 continue
+            if args.reject_companion_awards and is_companion_pair(l.get("a_core"), l.get("b_core")):
+                n_companion += 1
+                continue
+            if args.reject_multisite_title_strip:
+                if strip_multisite_prefix(l.get("a_title")) == strip_multisite_prefix(l.get("b_title")):
+                    n_title_strip += 1
+                    continue
             if is_within_org_transition(l):
                 n_transition += 1
                 continue
@@ -101,9 +163,14 @@ def main() -> int:
         "in": n_in,
         "out": n_out,
         "rejected_multisite": n_multisite,
+        "rejected_companion_awards": n_companion,
+        "rejected_title_strip_match": n_title_strip,
         "rejected_transition": n_transition,
+        "rejected_dedup_pair": n_dedup,
+        "rejected_same_pi_gate": n_same_pi_required,
         "jac_min": args.jac_min,
         "activity_prefix": args.activity_prefix,
+        "require_same_pi": args.require_same_pi,
     }
     (args.out.parent / (args.out.stem + "_summary.json")).write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
