@@ -33,26 +33,24 @@ def main() -> int:
     # design (Berkeley/Argonne/Livermore DoE contracts, EU framework programmes,
     # NSF facility awards). Not fraud — skip.
     INSTITUTIONAL_PATTERNS = [
-        r"^DE-AC0",         # DoE lab master contracts (Berkeley 05CH11231, etc)
-        r"^AC0[0-9]{2}-",   # ditto
-        r"^FP[0-9]?/",      # EU FP6/FP7
-        r"^H2020",          # Horizon 2020
-        r"^EU-[0-9]",       # EU generic
-        r"^UL1 TR",         # NIH CTSA institutional
-        r"^P30 (CA|DK|AG|GM|EY|NS|AI|HL|MH|DA|ES|HD|CA)",  # cancer/institute core grants
-        r"^P40",            # NIH shared-resource
-        r"^S10",            # NIH shared-instrumentation
-        r"^C06",            # NIH construction
-        r"^P51",            # NIH primate centers
-        r"^G20",            # NIH facilities
+        r"DE-AC0",              # DoE lab master contracts
+        r"AC0[0-9]-[0-9]+CH",   # anywhere in string
+        r"^[0-9]{2}CH[0-9]+$",  # 05CH11231, 06CH11357 (LBNL/ANL bare fragments)
+        r"^-?AC0[0-9]",         # leading-dash artefacts
+        r"^FP[0-9]?/",          # EU FP6/FP7
+        r"^H2020",              # Horizon 2020
+        r"^EU-[0-9]",           # EU generic
+        r"^UL1 TR",             # NIH CTSA
+        r"^P30 (CA|DK|AG|GM|EY|NS|AI|HL|MH|DA|ES|HD)",
+        r"^P40", r"^S10", r"^C06", r"^P51", r"^G20",
+        r"^R24", r"^R25",       # NIH training / infrastructure (not project research)
     ]
     import re
     inst_re = re.compile("|".join(INSTITUTIONAL_PATTERNS))
     def is_institutional(award: str) -> bool:
         if not award:
             return False
-        # short award-id fragments (<7 chars) are almost always OpenAlex parsing artefacts
-        if len(award) < 7:
+        if len(award) < 8:  # short fragments are parsing artefacts
             return True
         return bool(inst_re.search(award))
 
