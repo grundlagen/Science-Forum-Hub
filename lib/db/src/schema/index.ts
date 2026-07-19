@@ -6,3 +6,5 @@ export * from "./aiReports";
 export * from "./reviews";
 export * from "./comments";
 export * from "./revisions";
+export * from "./figures";
+export * from "./figureMatches";
