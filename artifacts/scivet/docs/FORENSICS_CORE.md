@@ -1,8 +1,9 @@
-# Integrity Mode — forensics core (Phase A + detector core)
+# Integrity Mode — forensics core + ingestion (Phases A, B, C, D, E)
 
-First vertical slice of the one-shot in `DUPLICATION_DETECTION_ONESHOT.md`.
-Dependency-free, deterministic, and typecheck-green. It surfaces **candidates for
-human review** — never a determination of misconduct (see the one-shot §0).
+Vertical slice of the one-shot in `DUPLICATION_DETECTION_ONESHOT.md`.
+Deterministic and typecheck-green. It surfaces **candidates for human review** —
+never a determination of misconduct (see the one-shot §0). Real image bytes now
+flow end-to-end: decode → perceptual hash → `scoreMatch`.
 
 ## What's implemented
 
@@ -27,21 +28,41 @@ human review** — never a determination of misconduct (see the one-shot §0).
   blot-FP discount, cluster boost.
 - `types.ts` — `GrayImage`, `MatchResult`, and the standing `INTEGRITY_DISCLAIMER`.
 
-**Fixture gate (§4 rung 1)** — `artifacts/api-server/scripts/forensics-fixture-test.ts`
+**Ingestion + decode (Phases B/C)** — `artifacts/api-server/src/lib/ingest/`
+- `decode.ts` — PNG/JPEG bytes → `GrayImage` (magic-byte sniff, Rec.601 luma),
+  plus `encodeGrayPng` for storage/thumbnails/round-trip tests. Uses pure-JS
+  `pngjs` + `jpeg-js` (no native build).
+- `types.ts` — `RawFigure`, the `FigureSource` interface, and an **injectable
+  `Fetcher`** so adapters are unit-testable offline and the caller owns
+  rate-limiting / proxy / ToS.
+- `pmcOa.ts` — PMC Open Access source: `parseJatsFigures` (label/caption/graphic
+  from JATS XML), `pmcEfetchUrl`, `resolveGraphicUrl`, and `pmcOaSource` that
+  fetches JATS + graphics via the injected fetcher. OA subset only.
+- `upload.ts` — wrap user-supplied bytes as a `RawFigure`.
+- `storage.ts` — content-addressed local store (`sha256.<ext>`, dedup, env dir),
+  a seam for S3.
+- `panels.ts` — projection-profile multi-panel splitter (+ `crop`).
+- `pipeline.ts` — `prepareFigure` / `prepareFigureWithPanels`: decode → store →
+  `pHash` → the `InsertFigure` row (DB write stays in the route layer).
+
+**Fixture gates (§4 rung 1)**
 ```
-pnpm --filter @workspace/api-server run test:forensics
+pnpm --filter @workspace/api-server run test:forensics   # 11 checks — detectors + ranking
+pnpm --filter @workspace/api-server run test:ingest      # 24 checks — decode/JATS/storage/panels/e2e
 ```
-11 checks: exact/rotated/distinct near-dup, blot gate, copy-move ±, splice ±, and
-ranking sanity. All green.
+The ingest gate includes an **end-to-end** proof (encoded bytes → decode →
+`scoreMatch` flags rotated reuse; distinct figures cleared). All green, offline.
 
 ## Deferred (next phases, see the one-shot)
 
+- **Live corpus run**: wire `pmcOaSource` to the real `httpFetcher` behind rate
+  limiting, then run the §4 labelled-corpus rung against known-retracted papers to
+  calibrate thresholds. (Parsing/orchestration done; only the live fetch + a small
+  runner remain.)
+- **TIFF decode** (common in PMC OA) and **bioRxiv PDF raster** extraction.
 - Keypoint matching (SIFT/ORB + RANSAC) for **sub-region** transformed reuse under
-  arbitrary affine warps — the current `nearDuplicate` handles whole-figure
-  rotate/flip only.
-- Ingestion adapters (PMC OA, bioRxiv, upload) + image decode → `GrayImage`
-  (Phase B/C).
+  arbitrary affine warps — current `nearDuplicate` handles whole-figure rotate/flip.
 - API routes (`/integrity/*`) and the triage UI console (Phase F/G).
 - ANN prefilter / pgvector so cross-corpus matching is O(candidates), not O(n²).
 
-The detector functions are the stable substrate the deferred phases plug into.
+The detector + ingest functions are the stable substrate the deferred phases plug into.
