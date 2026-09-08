@@ -1,6 +1,12 @@
 name: Procurement Forensics
 
 on:
+  push:
+    branches:
+      - procurement-workshop-forensics
+    paths:
+      - 'research/procurement_forensics/**'
+      - '.github/workflows/procurement-forensics.yml'
   pull_request:
     paths:
       - 'research/procurement_forensics/**'
