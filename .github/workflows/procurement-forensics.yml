@@ -26,30 +26,21 @@ jobs:
         run: pip install pandas numpy requests openpyxl xlrd beautifulsoup4 pypdf
       - name: Probe NCDOT XLS bid tabs
         run: python research/procurement_forensics/ncdot_probe.py
-      - name: Probe official Oregon bid-tab PDFs
-        run: python research/procurement_forensics/odot_bidtab_probe.py
-      - name: Probe Oregon workbook schema
-        run: python research/procurement_forensics/odot_schema_probe.py
-      - name: Run Oregon DOT 2024-2026 bidder-pair screen
+      - name: Run NCDOT repeated bidder-pair screen
         run: |
-          mkdir -p artifacts/procurement_forensics/odot
-          set +e
-          python research/procurement_forensics/dot_bid_screen.py \
-            --years 2026 2025 2024 \
-            --out artifacts/procurement_forensics/odot \
-            > artifacts/procurement_forensics/odot/run.log 2>&1
-          code=$?
-          cat artifacts/procurement_forensics/odot/run.log
-          echo "$code" > artifacts/procurement_forensics/odot/exit_code.txt
-          exit 0
-      - name: Show top leads
+          mkdir -p artifacts/procurement_forensics/ncdot
+          python research/procurement_forensics/ncdot_bid_screen.py \
+            --out artifacts/procurement_forensics/ncdot \
+            > artifacts/procurement_forensics/ncdot/run.log 2>&1
+          cat artifacts/procurement_forensics/ncdot/run.log
+      - name: Show NCDOT top leads
         if: always()
         run: |
-          test -f artifacts/procurement_forensics/odot/summary.json && cat artifacts/procurement_forensics/odot/summary.json || true
-          test -f artifacts/procurement_forensics/odot/pair_screen.csv && head -30 artifacts/procurement_forensics/odot/pair_screen.csv || true
+          test -f artifacts/procurement_forensics/ncdot/summary.json && cat artifacts/procurement_forensics/ncdot/summary.json || true
+          test -f artifacts/procurement_forensics/ncdot/pair_screen.csv && head -35 artifacts/procurement_forensics/ncdot/pair_screen.csv || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: procurement-forensics-odot
-          path: artifacts/procurement_forensics/odot/
-          if-no-files-found: warn
+          name: procurement-forensics-ncdot
+          path: artifacts/procurement_forensics/ncdot/
+          if-no-files-found: error
