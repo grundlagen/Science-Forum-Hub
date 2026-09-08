@@ -21,17 +21,17 @@ ODOT_ZIPS = {
     2024: "https://www.oregon.gov/odot/Business/Estimating/2024%20BID%20DATA%20PROGRAM.zip",
 }
 ALIASES = {
-    "contract": ["contract number", "contract no", "contract", "key number", "project number", "project no"],
-    "bidder": ["bidder", "bidder name", "vendor", "vendor name", "contractor", "contractor name"],
-    "rank": ["bid rank", "bidder rank", "overall bid rank", "rank", "bid rank sequence number"],
-    "total": ["bid total", "total bid", "bid amount", "bid total amount", "total amount"],
-    "item": ["bid item", "bid item description", "item description", "description", "item"],
-    "item_code": ["item code", "bid item code", "bid code", "item number", "item no"],
-    "unit_price": ["unit bid price", "bid unit price", "unit price", "bid item unit price amount"],
-    "quantity": ["quantity", "bid item quantity", "item quantity"],
-    "date": ["bid date", "letting date", "project actual let date", "date"],
-    "federal": ["federal aid number", "federal project number", "federal project", "fed aid"],
-    "project": ["project name", "project", "short description"],
+    "contract": ["contract number", "contract no", "contract", "contract id", "key number", "key no", "project number", "project no", "contract number text"],
+    "bidder": ["bidder", "bidder name", "vendor", "vendor name", "contractor", "contractor name", "bidder contractor", "prime contractor"],
+    "rank": ["bid rank", "bidder rank", "overall bid rank", "overall rank", "rank", "bid rank sequence number", "contractor rank"],
+    "total": ["bid total", "total bid", "bid amount", "bid total amount", "total amount", "contract bid amount", "total bid amount"],
+    "item": ["bid item", "bid item description", "item description", "description", "item", "item desc", "specification description"],
+    "item_code": ["item code", "bid item code", "bid code", "item number", "item no", "bid item number", "spec number", "specification number"],
+    "unit_price": ["unit bid price", "bid unit price", "unit price", "bid item unit price amount", "bid price", "item bid price", "contractor unit price"],
+    "quantity": ["quantity", "bid item quantity", "item quantity", "qty", "estimated quantity"],
+    "date": ["bid date", "letting date", "project actual let date", "date", "contract bid date"],
+    "federal": ["federal aid number", "federal project number", "federal project", "fed aid", "federal aid no", "federal number"],
+    "project": ["project name", "project", "short description", "contract description", "project description"],
 }
 
 def norm(s):
@@ -46,7 +46,7 @@ def find_col(cols, aliases):
     for a in aliases:
         na = norm(a)
         for nc, orig in nmap.items():
-            if len(na) >= 6 and (na in nc or nc in na): return orig
+            if len(na) >= 5 and (na in nc or nc in na): return orig
     return None
 
 def download_zip(url: str, timeout=90) -> bytes:
@@ -58,32 +58,77 @@ def excel_frames_from_zip(blob: bytes, source: str):
     with zipfile.ZipFile(io.BytesIO(blob)) as z:
         names=[n for n in z.namelist() if n.lower().endswith((".xlsx",".xlsm",".xls")) and not n.startswith("__MACOSX")]
         if not names: raise RuntimeError(f"No Excel workbook found in {source}; members={z.namelist()[:30]}")
+        print("ARCHIVE", source, "WORKBOOKS", names)
         for name in names:
             b=z.read(name); engine="openpyxl" if name.lower().endswith((".xlsx",".xlsm")) else None
-            try: sheets=pd.read_excel(io.BytesIO(b), sheet_name=None, engine=engine)
+            try:
+                # Preserve every row. ODOT workbooks have changed header layout over time;
+                # reading header=None lets the detector find the actual field-name row.
+                sheets=pd.read_excel(io.BytesIO(b), sheet_name=None, engine=engine, header=None)
             except Exception as e: print(f"WARN: cannot read {source}:{name}: {e}", file=sys.stderr); continue
             for sh, df in sheets.items():
                 if len(df)<2: continue
-                df=df.copy(); df["_source_year_file"]=f"{source}:{name}:{sh}"; out.append(df)
+                df=df.copy(); df["_source_year_file"]=f"{source}:{name}:{sh}"
+                print("SHEET", name, sh, "shape", df.shape)
+                out.append(df)
     return out
 
+def header_score(cols):
+    mapping={k:find_col(cols,v) for k,v in ALIASES.items()}
+    # Contract + bidder are essential. Item/unit/rank/total/date provide useful discrimination.
+    score=0
+    score += 4 if mapping["contract"] is not None else 0
+    score += 4 if mapping["bidder"] is not None else 0
+    for k in ["rank","total","unit_price","item","item_code","quantity","date","federal","project"]:
+        score += 1 if mapping[k] is not None else 0
+    return score,mapping
+
 def detect_header_and_normalize(df):
-    candidates=[]; raw=df.copy()
-    for header_shift in range(0,min(9,len(raw))):
-        if header_shift==0: test=raw.copy()
+    raw=df.copy(); candidates=[]
+    # Candidate A: occasionally callers may already supply real column names.
+    score,mapping=header_score(raw.columns)
+    candidates.append((score,-1,raw.copy(),mapping))
+    # Candidate B: test each of the first 35 raw rows as a possible header row.
+    for header_row in range(0,min(35,len(raw))):
+        vals=[str(x).strip() if pd.notna(x) else "" for x in raw.iloc[header_row].tolist()]
+        # Ignore our provenance helper as a candidate header token.
+        if "_source_year_file" in raw.columns:
+            vals = vals[:-1]
+            body = raw.iloc[header_row+1:, :-1].copy()
+            prov = raw.iloc[header_row+1:, -1].copy()
         else:
-            vals=list(raw.iloc[header_shift].astype(str)); test=raw.iloc[header_shift+1:].copy(); test.columns=vals
-        mapping={k:find_col(test.columns,v) for k,v in ALIASES.items()}
-        score=sum(mapping[k] is not None for k in ["contract","bidder","rank","unit_price","item"])
-        candidates.append((score,test,mapping))
-    score,test,mapping=max(candidates,key=lambda x:x[0])
-    if score<3:return None
+            body=raw.iloc[header_row+1:].copy(); prov=None
+        if not any(vals): continue
+        # Make duplicate headers unique but retain visible wording for matching.
+        seen={}; unique=[]
+        for v in vals:
+            base=v or "unnamed"
+            n=seen.get(base,0);seen[base]=n+1
+            unique.append(base if n==0 else f"{base}__{n+1}")
+        if len(unique)!=body.shape[1]: continue
+        body.columns=unique
+        if prov is not None: body["_source_year_file"]=list(prov)
+        score,mapping=header_score(body.columns)
+        candidates.append((score,header_row,body,mapping))
+    score,hrow,test,mapping=max(candidates,key=lambda x:x[0])
+    if mapping["contract"] is None or mapping["bidder"] is None:
+        return None
     keep={}
     for std,orig in mapping.items():
         if orig is not None and orig not in keep: keep[orig]=std
     d=test.rename(columns=keep).copy()
-    if not {"contract","bidder"}.issubset(d.columns):return None
+    d["_detected_header_row"]=hrow
     return d
+
+def debug_unrecognized(frames, limit=8):
+    print("=== UNRECOGNIZED ODOT WORKBOOK SCHEMA ===", file=sys.stderr)
+    for i,f in enumerate(frames[:limit]):
+        src="?"
+        if "_source_year_file" in f.columns and len(f): src=str(f["_source_year_file"].iloc[0])
+        print(f"FRAME {i}: {src} shape={f.shape}", file=sys.stderr)
+        print("RAW COLUMNS:", [str(x) for x in f.columns], file=sys.stderr)
+        print(f.head(20).to_string(index=False, header=False), file=sys.stderr)
+        print("---", file=sys.stderr)
 
 def clean_frames(frames):
     chunks=[]
@@ -91,15 +136,17 @@ def clean_frames(frames):
         d=detect_header_and_normalize(f)
         if d is None: continue
         for c in ["contract","bidder","item","item_code","federal","project"]:
-            if c in d:d[c]=d[c].astype(str).str.strip()
+            if c in d:
+                d[c]=d[c].where(d[c].notna(),"").astype(str).str.strip()
         for c in ["rank","total","unit_price","quantity"]:
             if c in d:d[c]=pd.to_numeric(d[c],errors="coerce")
         if "date" in d:d["date"]=pd.to_datetime(d["date"],errors="coerce")
-        d=d[d["contract"].notna() & d["bidder"].notna()]
         d=d[(d["contract"].astype(str).str.len()>0)&(d["bidder"].astype(str).str.len()>1)]
         chunks.append(d)
-    if not chunks:raise RuntimeError("Could not recognize bid-data columns in any workbook sheet")
-    cols=sorted(set().union(*(set(x.columns) for x in chunks)))
+    if not chunks:
+        debug_unrecognized(frames)
+        raise RuntimeError("Could not recognize bid-data columns in any workbook sheet")
+    cols=sorted(set().union(*(set(x.columns) for x in chunks)),key=str)
     return pd.concat([x.reindex(columns=cols) for x in chunks],ignore_index=True)
 
 def canonical_bidder(s): return norm(s)
@@ -132,13 +179,14 @@ def screen(df):
     bids,items=build_bid_table(df)
     pairs=defaultdict(lambda:{"common_contracts":0,"small_gap_05":0,"small_gap_10":0,"l1_l2":0,"a_wins":0,"b_wins":0,"high_corr":0,"corr_n":0,"contracts":[]})
     contract_rows=[]
-    for contract,g in bids.groupby("contract"):
-        g=g.drop_duplicates("bidder_key");
+    for contract,g0 in bids.groupby("contract"):
+        g=g0.drop_duplicates("bidder_key").copy()
         if len(g)<2:continue
         if "rank" not in g:g["rank"]=np.nan
         if "total" in g and g["total"].notna().sum()>=2:g["rank"]=g["rank"].fillna(g["total"].rank(method="min"))
-        gs=g.sort_values(["rank","total"],na_position="last")
-        if len(gs)>=2 and pd.notna(gs.iloc[0].get("total")) and pd.notna(gs.iloc[1].get("total")):
+        sort_cols=[c for c in ["rank","total"] if c in g]
+        gs=g.sort_values(sort_cols,na_position="last") if sort_cols else g
+        if len(gs)>=2 and "total" in gs and pd.notna(gs.iloc[0].get("total")) and pd.notna(gs.iloc[1].get("total")):
             t1=float(gs.iloc[0]["total"]);t2=float(gs.iloc[1]["total"]);gap=abs(t2-t1)/max(abs(t1),1)*100
             contract_rows.append({"contract":contract,"l1":gs.iloc[0].bidder,"l2":gs.iloc[1].bidder,"l1_total":t1,"l2_total":t2,"gap_pct":gap,"federal":gs.iloc[0].get("federal"),"project":gs.iloc[0].get("project")})
         for ra,rb in combinations(g.to_dict("records"),2):
@@ -160,7 +208,7 @@ def screen(df):
     rows=[]
     for (a,b),p in pairs.items():
         rotation=min(p["a_wins"],p["b_wins"])
-        score=math.log1p(p["common_contracts"])*1.5+p["small_gap_05"]*2.5+p["small_gap_10"]+ p["l1_l2"]*.7+rotation*1.5+p["high_corr"]*1.5
+        score=math.log1p(p["common_contracts"])*1.5+p["small_gap_05"]*2.5+p["small_gap_10"]+p["l1_l2"]*.7+rotation*1.5+p["high_corr"]*1.5
         rows.append({"bidder_a":a,"bidder_b":b,**{k:v for k,v in p.items() if k!="contracts"},"winner_rotation":rotation,"lead_score":round(score,3),"contracts_json":json.dumps(p["contracts"],separators=(",",":"))})
     pairdf=pd.DataFrame(rows).sort_values(["lead_score","common_contracts"],ascending=False) if rows else pd.DataFrame()
     return pairdf,pd.DataFrame(contract_rows),bids
