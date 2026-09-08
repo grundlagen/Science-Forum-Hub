@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  odot-bid-screen:
+  procurement-screens:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -24,6 +24,8 @@ jobs:
           python-version: '3.12'
       - name: Install screen dependencies
         run: pip install pandas numpy requests openpyxl xlrd beautifulsoup4 pypdf
+      - name: Probe NCDOT XLS bid tabs
+        run: python research/procurement_forensics/ncdot_probe.py
       - name: Probe official Oregon bid-tab PDFs
         run: python research/procurement_forensics/odot_bidtab_probe.py
       - name: Probe Oregon workbook schema
