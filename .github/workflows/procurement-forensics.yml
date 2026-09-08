@@ -24,6 +24,8 @@ jobs:
           python-version: '3.12'
       - name: Install screen dependencies
         run: pip install pandas numpy requests openpyxl xlrd
+      - name: Probe Oregon workbook schema
+        run: python research/procurement_forensics/odot_schema_probe.py
       - name: Run Oregon DOT 2024-2026 bidder-pair screen
         run: |
           mkdir -p artifacts/procurement_forensics/odot
