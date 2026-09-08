@@ -1,22 +1,17 @@
-// FOCUS pre-filing gate — the data-miner tradecraft, encoded.
-//
-// DOJ's FOCUS initiative (Apr 2026) says it will prioritize data-miner qui tam actions
-// that clear four bars. Data-mined cases have a LOWER success rate precisely because
-// summary-data signals often can't plead falsity/materiality with particularity. This
-// gate scores a candidate case against those four bars BEFORE anyone files or contacts
-// a target, turning "we found an anomaly" into "we have a fileable matter — or here's
-// exactly what's missing." It does not replace counsel; it makes the counsel meeting
-// productive.
-//
-// The four requirements (paraphrased from DOJ/FOCUS commentary):
-//   1. high-quality, reliable, PREDICTIVE signal (validated, not a one-off outlier);
-//   2. Rule 9(b) particularity — named who/what/when/how, tied to specific claims;
-//   3. legitimate innocent explanations anticipated and rebutted;
-//   4. demonstrated grasp of the program's eligibility rules / regulatory framework.
+// Internal evidence-completeness screen inspired by DOJ FOCUS, not an official
+// DOJ scoring system or a determination that a complaint is legally sufficient.
+// A score cannot establish falsity, knowledge, materiality, or relator eligibility.
 import type { FraudDomain } from "@workspace/db/schema";
 
 export interface CaseEvidenceProfile {
   domain: FraudDomain;
+  // Source locators plus a claim-specific explanation; existence is checked here,
+  // evidentiary weight and legal sufficiency must be assessed by counsel.
+  claimFalsityEvidence?: string[];
+  knowledgeEvidence?: string[];
+  materialityEvidence?: string[];
+  programRuleAppliesToClaim?: boolean;
+  knownResolvedMatter?: boolean;
   // 1. signal quality
   corroboratingDetectors: number; // independent detectors that agree
   validatedAgainstGroundTruth: boolean; // detector has a measured precision/recall
@@ -45,6 +40,7 @@ export interface FocusAssessment {
   total: number; // 0..100
   readiness: "not_ready" | "developing" | "meeting_worth_counsel";
   summary: string;
+  evidenceGaps: string[];
 }
 
 function req1(p: CaseEvidenceProfile): RequirementScore {
@@ -54,7 +50,7 @@ function req1(p: CaseEvidenceProfile): RequirementScore {
   else gaps.push("only one detector fired — a lone signal is not predictive; corroborate with an independent one");
   if (p.validatedAgainstGroundTruth) s += 10;
   else gaps.push("no measured precision/recall for this detector — run the validation harness to show the signal correlates to fraud");
-  return { requirement: "1. High-quality, predictive signal", met: s >= 20, score: s, gaps };
+  return { requirement: "1. High-quality, predictive signal", met: gaps.length === 0, score: s, gaps };
 }
 
 function req2(p: CaseEvidenceProfile): RequirementScore {
@@ -68,7 +64,7 @@ function req2(p: CaseEvidenceProfile): RequirementScore {
   else gaps.push("no concrete dates/time window");
   if (p.identityConfirmed) s += 5;
   else gaps.push("subject identity not confirmed (possible common-name conflation) — anchor identity before filing");
-  return { requirement: "2. Rule 9(b) particularity", met: s >= 20, score: s, gaps };
+  return { requirement: "2. Claim particularity for counsel review", met: gaps.length === 0, score: s, gaps };
 }
 
 function req3(p: CaseEvidenceProfile): RequirementScore {
@@ -96,18 +92,25 @@ function req4(p: CaseEvidenceProfile): RequirementScore {
 export function assessFocusReadiness(p: CaseEvidenceProfile): FocusAssessment {
   const requirements = [req1(p), req2(p), req3(p), req4(p)];
   const total = requirements.reduce((a, r) => a + r.score, 0);
-  const allMet = requirements.every((r) => r.met);
+  const evidenceGaps: string[] = [];
+  const hasEvidence = (items?: string[]) => items?.some((item) => item.trim().length > 0) === true;
+  if (!hasEvidence(p.claimFalsityEvidence)) evidenceGaps.push("No claim-specific evidence of falsity; an award or anomaly alone is insufficient.");
+  if (!hasEvidence(p.knowledgeEvidence)) evidenceGaps.push("No evidence addressing knowledge, deliberate ignorance, or reckless disregard.");
+  if (!hasEvidence(p.materialityEvidence)) evidenceGaps.push("No evidence explaining materiality to government payment or approval.");
+  if (p.programRuleAppliesToClaim !== true) evidenceGaps.push("Program rule applicability to this entity, claim, and date remains unverified.");
+  if (p.knownResolvedMatter) evidenceGaps.push("Known resolved matter: retain as a benchmark, not a new recovery lead.");
+  const allMet = requirements.every((r) => r.met) && evidenceGaps.length === 0;
   const readiness: FocusAssessment["readiness"] = allMet
     ? "meeting_worth_counsel"
     : total >= 50
       ? "developing"
       : "not_ready";
-  const openGaps = requirements.flatMap((r) => r.gaps).length;
+  const openGaps = requirements.flatMap((r) => r.gaps).length + evidenceGaps.length;
   const summary =
     readiness === "meeting_worth_counsel"
-      ? `All four FOCUS bars met (score ${total}/100). Worth a counsel meeting; counsel owns seal/first-to-file/original-source.`
-      : `${openGaps} gap(s) before this is a fileable data-miner matter (score ${total}/100, readiness: ${readiness}). Close the gaps below — do not contact any target yet.`;
-  return { domain: p.domain, requirements, total, readiness, summary };
+      ? `Internal evidence-completeness checks met (score ${total}/100). Worth a counsel meeting; counsel owns seal/first-to-file/original-source.`
+      : `${openGaps} gap(s) in the current investigation (score ${total}/100, readiness: ${readiness}). Close the gaps below — do not contact any target yet.`;
+  return { domain: p.domain, requirements, total, readiness, summary, evidenceGaps };
 }
 
 export function renderFocusAssessment(a: FocusAssessment): string {
@@ -117,6 +120,7 @@ export function renderFocusAssessment(a: FocusAssessment): string {
     for (const g of r.gaps) lines.push(`- ${g}`);
     lines.push("");
   }
+  for (const gap of a.evidenceGaps) lines.push(`- ${gap}`);
   lines.push("_Not legal advice. A readiness score is not a decision to file — counsel decides._");
   return lines.join("\n");
 }

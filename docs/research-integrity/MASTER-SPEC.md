@@ -24,12 +24,15 @@ counsel to validate.
 9. Engage DOJ FOCUS (FOCUS.dataminers@usdoj.gov) with counsel on timing.
 
 ## 3. Legal model
-3-prong liability (low bar, no intent): compromised research → produced under/cited in specific
-federal grants → institution's **false certification** (oversight, allowable expense, disclosure).
+Research or grant linkage alone does not establish FCA liability. Identify a specific
+false claim or material false statement, evidence of knowledge (including deliberate
+ignorance or reckless disregard), and materiality under the applicable theory.
+No specific intent to defraud is required; that does not remove the knowledge requirement.
+See [evidence review](EVIDENCE-REVIEW-2026-09.md).
 Gates: **public-disclosure bar + original source** (two paths; First Circuit "materially adds" =
 "significant/essential"; blogs are public disclosure; pure data-scans risk the patent-records
-"not original source" holding → human expert analysis is the defence); **first-to-file** (broad; a
-race); **FOCUS** (invites data miners; works around the bar via intervention; policy not law);
+"not original source" holding → human expert analysis is not an automatic original-source exception); **first-to-file** (broad; a
+race); **FOCUS** (invites data miners; does not automatically remove statutory bars; policy not law);
 **seal discipline**; **GDPR/Irish DPA** (Irish lawyer's lane).
 
 ## 4. Vectors (feasibility × precedent)
@@ -48,7 +51,7 @@ Retraction Watch DB (Crossref), DOJ settlement PDFs, CourtListener/RECAP, NSF OI
 
 ## 6. System (see ARCHITECTURE.md — delivered separately)
 Evidence engine; signals not verdicts; explainability mandatory; legal-by-design; clean inputs;
-human-in-loop = original source; scope before scale. Connectors → staging → resolve (OpenAlex
+human review documents independent contributions; original-source status requires legal assessment; scope before scale. Connectors → staging → resolve (OpenAlex
 spine) → canonical graph → detectors → scoring → review queue → case package.
 
 ## 7. Build plan
