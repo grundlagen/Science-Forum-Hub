@@ -27,8 +27,12 @@ check("thin candidate is not_ready", wa.readiness === "not_ready");
 check("thin candidate has gaps in every requirement", wa.requirements.every((r) => r.gaps.length > 0));
 check("thin candidate scores low", wa.total < 30);
 
-// A fully worked-up matter: all four bars met.
+// Synthetic worked-up matter; document references are test fixtures only.
 const strong: CaseEvidenceProfile = {
+  claimFalsityEvidence: ["fixture: application contradicts dated underlying record"],
+  knowledgeEvidence: ["fixture: pre-submission warning acknowledged"],
+  materialityEvidence: ["fixture: payment condition and agency response"],
+  programRuleAppliesToClaim: true,
   domain: "ppp_covid_relief",
   corroboratingDetectors: 2,
   validatedAgainstGroundTruth: true,
@@ -55,6 +59,21 @@ const partial: CaseEvidenceProfile = {
 const pa = assessFocusReadiness(partial);
 check("partial matter is not meeting-worthy", pa.readiness !== "meeting_worth_counsel");
 check("partial matter names the missing innocent-explanation work", pa.requirements[2].gaps.length > 0);
+
+for (const field of ["identityConfirmed", "hasDates"] as const) {
+  const a = assessFocusReadiness({ ...strong, [field]: false });
+  check(field + " cannot be offset by other points", a.readiness !== "meeting_worth_counsel");
+}
+for (const field of ["claimFalsityEvidence", "knowledgeEvidence", "materialityEvidence"] as const) {
+  for (const value of [undefined, [], ["  "]]) {
+    const a = assessFocusReadiness({ ...strong, [field]: value });
+    check(field + " missing/empty blocks promotion", a.readiness !== "meeting_worth_counsel");
+  }
+}
+check("wrong-date rule blocks promotion", assessFocusReadiness({ ...strong, programRuleAppliesToClaim: false }).readiness !== "meeting_worth_counsel");
+check("settled benchmark blocks promotion", assessFocusReadiness({ ...strong, knownResolvedMatter: true }).readiness !== "meeting_worth_counsel");
+check("missing entity blocks particularity", !assessFocusReadiness({ ...strong, namedEntities: 0 }).requirements[1].met);
+check("missing claim blocks particularity", !assessFocusReadiness({ ...strong, identifiedClaims: 0 }).requirements[1].met);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
