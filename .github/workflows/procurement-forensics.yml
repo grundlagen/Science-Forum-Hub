@@ -1,0 +1,36 @@
+name: Procurement Forensics
+
+on:
+  pull_request:
+    paths:
+      - 'research/procurement_forensics/**'
+      - '.github/workflows/procurement-forensics.yml'
+  workflow_dispatch:
+
+jobs:
+  odot-bid-screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install screen dependencies
+        run: pip install pandas numpy requests openpyxl xlrd
+      - name: Run Oregon DOT 2024-2026 bidder-pair screen
+        run: |
+          python research/procurement_forensics/dot_bid_screen.py \
+            --years 2026 2025 2024 \
+            --out artifacts/procurement_forensics/odot
+      - name: Show top leads
+        if: always()
+        run: |
+          test -f artifacts/procurement_forensics/odot/summary.json && cat artifacts/procurement_forensics/odot/summary.json || true
+          test -f artifacts/procurement_forensics/odot/pair_screen.csv && head -30 artifacts/procurement_forensics/odot/pair_screen.csv || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: procurement-forensics-odot
+          path: artifacts/procurement_forensics/odot/
+          if-no-files-found: warn
