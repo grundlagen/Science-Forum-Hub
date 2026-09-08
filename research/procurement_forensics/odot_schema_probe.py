@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-import io, zipfile, requests, pandas as pd
+import io, zipfile, requests, pandas as pd, re
 URLS=[
 'https://www.oregon.gov/odot/Business/Estimating/2026%20BID%20DATA%20PROGRAM.zip',
 'https://www.oregon.gov/odot/Business/Estimating/2025%20BID%20DATA%20PROGRAM.zip',
 'https://www.oregon.gov/odot/Business/Estimating/2024%20BID%20DATA%20PROGRAM.zip']
+TOKENS=['contract','vendor','bidder','ranking','rank','bid date','item','quantity','price','region','project','extended amount']
 for url in URLS:
     b=requests.get(url,timeout=90,headers={'User-Agent':'Mozilla/5.0'}).content
     with zipfile.ZipFile(io.BytesIO(b)) as z:
@@ -13,4 +14,11 @@ for url in URLS:
             sheets=pd.read_excel(io.BytesIO(z.read(name)),sheet_name=None,header=None,engine=engine)
             for sh,df in sheets.items():
                 print('\n===',name,'::',sh,'shape=',df.shape,'===')
-                print(df.head(12).to_string(index=False,header=False,max_cols=30))
+                for i in range(min(120,len(df))):
+                    vals=['' if pd.isna(x) else str(x).strip() for x in df.iloc[i].tolist()]
+                    joined=' | '.join(vals).lower()
+                    hits=sorted({t for t in TOKENS if t in joined})
+                    if len(hits)>=3:
+                        print('CANDIDATE ROW',i,'hits=',hits)
+                        for j in range(max(0,i-1),min(len(df),i+3)):
+                            print('ROW',j,'::',' | '.join('' if pd.isna(x) else str(x).strip() for x in df.iloc[j].tolist()))
