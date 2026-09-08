@@ -13,9 +13,9 @@ jobs:
         with:
           node-version: 24
       - name: Install pnpm
-        run: npm install -g pnpm@latest
+        run: npm install -g pnpm@10.30.3
       - name: Install deps
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
       - name: Typecheck
         run: pnpm run typecheck --if-present
       - name: Build

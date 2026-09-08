@@ -1,0 +1,46 @@
+name: Procurement Forensics
+
+on:
+  push:
+    branches:
+      - procurement-workshop-forensics
+    paths:
+      - 'research/procurement_forensics/**'
+      - '.github/workflows/procurement-forensics.yml'
+  pull_request:
+    paths:
+      - 'research/procurement_forensics/**'
+      - '.github/workflows/procurement-forensics.yml'
+  workflow_dispatch:
+
+jobs:
+  procurement-screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install screen dependencies
+        run: pip install pandas numpy requests openpyxl xlrd beautifulsoup4 pypdf
+      - name: Probe NCDOT XLS bid tabs
+        run: python research/procurement_forensics/ncdot_probe.py
+      - name: Run NCDOT repeated bidder-pair screen
+        run: |
+          mkdir -p artifacts/procurement_forensics/ncdot
+          python research/procurement_forensics/ncdot_bid_screen.py \
+            --out artifacts/procurement_forensics/ncdot \
+            > artifacts/procurement_forensics/ncdot/run.log 2>&1
+          cat artifacts/procurement_forensics/ncdot/run.log
+      - name: Show NCDOT top leads
+        if: always()
+        run: |
+          test -f artifacts/procurement_forensics/ncdot/summary.json && cat artifacts/procurement_forensics/ncdot/summary.json || true
+          test -f artifacts/procurement_forensics/ncdot/pair_screen.csv && head -35 artifacts/procurement_forensics/ncdot/pair_screen.csv || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: procurement-forensics-ncdot
+          path: artifacts/procurement_forensics/ncdot/
+          if-no-files-found: error
