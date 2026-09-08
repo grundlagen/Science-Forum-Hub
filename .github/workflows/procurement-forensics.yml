@@ -26,9 +26,16 @@ jobs:
         run: pip install pandas numpy requests openpyxl xlrd
       - name: Run Oregon DOT 2024-2026 bidder-pair screen
         run: |
+          mkdir -p artifacts/procurement_forensics/odot
+          set +e
           python research/procurement_forensics/dot_bid_screen.py \
             --years 2026 2025 2024 \
-            --out artifacts/procurement_forensics/odot
+            --out artifacts/procurement_forensics/odot \
+            > artifacts/procurement_forensics/odot/run.log 2>&1
+          code=$?
+          cat artifacts/procurement_forensics/odot/run.log
+          echo "$code" > artifacts/procurement_forensics/odot/exit_code.txt
+          exit 0
       - name: Show top leads
         if: always()
         run: |
