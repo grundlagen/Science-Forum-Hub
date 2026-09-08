@@ -1,0 +1,70 @@
+name: Procurement forensics real-corpus smoke
+
+on:
+  push:
+    branches: [procurement-forensics-focus]
+    paths:
+      - '.github/workflows/procurement-forensics-corpus.yml'
+      - 'research/procurement_forensics/**'
+
+permissions:
+  contents: read
+
+jobs:
+  richmond-negative-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install forensic dependencies
+        run: python -m pip install --disable-pip-version-check PyMuPDF Pillow python-docx openpyxl
+      - name: Fetch public City of Richmond corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/richmond-procurement
+          base='https://raw.githubusercontent.com/hack4rva/pillar-thriving-city-hall/b8f774ddb8a7f250fbc579d94c9a6da4d17287bf/data/procurement-examples/pdfs'
+          for f in \
+            'Contract%2020000003712.pdf' \
+            'Contract%2021000000131.pdf' \
+            'Contract%2022000011432.pdf' \
+            'Contract%2023000004767.pdf' \
+            'Contract%2024000006048.pdf' \
+            'Contract%2025000005766.pdf' \
+            'Contract%2025000012048.pdf'; do
+            curl --fail --location --retry 3 "$base/$f" -o "/tmp/richmond-procurement/${f//%20/ }"
+          done
+          ls -lh /tmp/richmond-procurement
+      - name: Fingerprint original PDFs
+        run: |
+          python research/procurement_forensics/document_workshop_fingerprinter.py \
+            /tmp/richmond-procurement \
+            --pairs 0.08 \
+            --out /tmp/richmond-fingerprints.json \
+            --csv /tmp/richmond-pairs.csv
+      - name: Print machine-readable summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p='/tmp/richmond-fingerprints.json'
+          d=json.load(open(p))
+          print('REAL_CORPUS_FILES', len(d['files']))
+          for f in d['files']:
+              m=f.get('metadata',{})
+              print('FILE', f['name'], 'bytes=',f['bytes'], 'creator=',repr(m.get('creator')), 'producer=',repr(m.get('producer')), 'pages=',len(f.get('page_geometry',[])), 'fonts=',len(f.get('font_pairs',[])), 'jpeg_q=',len(f.get('jpeg_quant_hashes',[])), 'error=',f.get('error'))
+          print('CANDIDATE_PAIRS',len(d['candidate_pairs']))
+          for x in d['candidate_pairs'][:30]:
+              print('PAIR',x['score'],x['a'].split('/')[-1],'<->',x['b'].split('/')[-1])
+              for r in x['reasons']: print('  REASON',r)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: richmond-procurement-forensics
+          path: |
+            /tmp/richmond-fingerprints.json
+            /tmp/richmond-pairs.csv
+          if-no-files-found: error
