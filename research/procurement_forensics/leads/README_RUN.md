@@ -1,0 +1,1 @@
+Open the branch PR to trigger `.github/workflows/procurement-forensics.yml`; download the `procurement-forensics-odot` artifact and inspect `summary.json` and `pair_screen.csv`. Promote no pair without completing `FALSIFICATION.md`.
