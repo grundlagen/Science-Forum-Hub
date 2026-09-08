@@ -23,7 +23,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install screen dependencies
-        run: pip install pandas numpy requests openpyxl xlrd
+        run: pip install pandas numpy requests openpyxl xlrd beautifulsoup4 pypdf
+      - name: Probe official Oregon bid-tab PDFs
+        run: python research/procurement_forensics/odot_bidtab_probe.py
       - name: Probe Oregon workbook schema
         run: python research/procurement_forensics/odot_schema_probe.py
       - name: Run Oregon DOT 2024-2026 bidder-pair screen
